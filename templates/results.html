@@ -1,0 +1,159 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h2 class="mb-0">Search Results</h2>
+        <a href="/" class="btn btn-outline-light">
+            <i class="fas fa-search me-1"></i> New Search
+        </a>
+    </div>
+    
+    {% if error %}
+    <div class="card-body">
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {{ error }}
+        </div>
+        <div class="text-center mt-3">
+            <a href="/" class="btn btn-primary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Search
+            </a>
+        </div>
+    </div>
+    {% else %}
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Found {{ cps|length }} matching CPs
+        </div>
+
+        {% for cp in cps %}
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0">CP: {{ cp.CP }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- CP Information Section -->
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Counterpart Details</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <tbody>
+                                    <tr>
+                                        <th width="30%">Customer</th>
+                                        <td>{{ cp.Client_ID_1 }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Car Line</th>
+                                        <td>{{ cp.PRJ_ID1 }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>OT Reference</th>
+                                        <td>{{ cp.OT_rfrence }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- CP Image Section -->
+                    <div class="col-md-6 text-center">
+                        <h5 class="mb-3"></h5>
+                        {% if cp.Image %}
+                        <div class="image-container border rounded p-2">
+                            {% if '/CP_SUB51/' in cp.Image %}
+                            <img src="{{ url_for('serve_cp_sub51_image', filename=cp.Image.split('/')[-1]) }}" alt="CP Image for {{ cp.CP }}" class="img-fluid">
+                            {% else %}
+                            <img src="{{ url_for('serve_cp_image', filename=cp.Image.split('/')[-1]) }}" alt="CP Image for {{ cp.CP }}" class="img-fluid">
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-secondary">
+                            <i class="fas fa-image me-2"></i>No image available
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- APN Details Section -->
+                <div class="mt-4">
+                    <h5 class="mb-3">APTIV Part Numbers</h5>
+                    {% set apn_details = get_apn_details(cp) %}
+                    {% if apn_details %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>DPN</th>
+                                    <th>Type</th>
+                                    <th>Quantity</th>
+                                    <th>References</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for apn in apn_details %}
+                                <tr>
+                                    <td>{{ apn.id }}</td>
+                                    <td>{{ apn.dpn }}</td>
+                                    <td>{{ apn.type }}</td>
+                                    <td>
+                                        {% if apn.quantity is not none %}
+                                        <span class="badge bg-info">{{ apn.quantity }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="card card-body bg-dark">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <dl class="row mb-0">
+                                                        <dt class="col-sm-4">Ref Emdep:</dt>
+                                                        <dd class="col-sm-8">{{ apn.ref_emdep or 'N/A' }}</dd>
+                                                        
+                                                        <dt class="col-sm-4">Ref Ingun:</dt>
+                                                        <dd class="col-sm-8">{{ apn.ref_ingun or 'N/A' }}</dd>
+                                                        
+                                                        <dt class="col-sm-4">Ref Fenmmital:</dt>
+                                                        <dd class="col-sm-8">{{ apn.ref_fenmmital or 'N/A' }}</dd>
+                                                        
+                                                        <dt class="col-sm-4">Ref Ptr:</dt>
+                                                        <dd class="col-sm-8">{{ apn.ref_ptr or 'N/A' }}</dd>
+                                                    </dl>
+                                                </div>
+                                                <div class="col-md-6 text-center">
+                                                    {% if apn.image %}
+                                                        {% if '/pin/' in apn.image %}
+                                                        <img src="{{ url_for('serve_apn_pin_image', filename=apn.image.split('/')[-1]) }}" alt="APN Image" class="img-fluid" style="max-height: 150px;">
+                                                        {% else %}
+                                                        <img src="{{ url_for('serve_apn_image', filename=apn.image.split('/')[-1]) }}" alt="APN Image" class="img-fluid" style="max-height: 150px;">
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <div class="alert alert-secondary">No image available</div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        No APN details found for this counterpart.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

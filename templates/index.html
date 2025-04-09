@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h2 class="mb-0">Search Counterparts</h2>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Please select a customer, then a car line, and enter the CP name to search.
+                </div>
+                
+                <form id="searchForm" action="/search" method="get" class="needs-validation" novalidate>
+                    <!-- Step 1: Customer Selection -->
+                    <div id="customerSelection" class="mb-4 pb-3 border-bottom">
+                        <h4 class="mb-3">1. Select Customer</h4>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for customer in customers %}
+                            <button type="button" class="btn btn-outline-primary customer-btn" data-customer="{{ customer }}">
+                                {% if customer %}
+                                <img src="{{ url_for('serve_customer_logo', filename=customer + '.png') }}" 
+                                     alt="{{ customer }} logo" 
+                                     class="customer-logo me-2"
+                                     onerror="this.src='{{ url_for('serve_customer_logo', filename=customer + '.jpg') }}'">
+                                {% endif %}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" id="customerInput" name="customer" required>
+                    </div>
+                    
+                    <!-- Step 2: Car Line Selection (initially hidden) -->
+                    <div id="carlineSelection" class="mb-4 pb-3 border-bottom d-none">
+                        <h4 class="mb-3">2. Select Car Line</h4>
+                        <div id="carlineButtons" class="d-flex flex-wrap gap-2">
+                            <!-- Dynamically populated by JavaScript -->
+                        </div>
+                        <input type="hidden" id="carlineInput" name="carline" required>
+                    </div>
+                    
+                    <!-- Step 3: CP Name Input (initially hidden) -->
+                    <div id="cpInputSection" class="mb-4 d-none">
+                        <h4 class="mb-3">3. Enter CP Name</h4>
+                        <div class="mb-3">
+                            <label for="cpName" class="form-label">CP Name</label>
+                            <input type="text" class="form-control" id="cpName" name="cp_name" required>
+                            <div class="invalid-feedback">
+                                Please enter a CP name.
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-search me-2"></i>Search
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

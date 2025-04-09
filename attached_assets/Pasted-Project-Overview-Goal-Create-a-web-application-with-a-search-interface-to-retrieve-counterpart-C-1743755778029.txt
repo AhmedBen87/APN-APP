@@ -1,0 +1,60 @@
+Project Overview:
+Goal: Create a web application with a search interface to retrieve counterpart (CP) information and associated APTIV part numbers (APNs) from a database. The application should handle relationships between two tables: CP and APN.
+2. Database Schema:
+Database Name: (Please specify if you have a database name). Otherwise assume a default name like 'ProbesDB'.
+Table 1: APN (APTIV Part Number)
+Table Name: APN
+Approximate Row Count: 150-200
+Columns:
+PIN_id (INTEGER, PRIMARY KEY): Unique identifier for each APN (e.g., 1, 2, 3...8).
+DPN (TEXT): APTIV part number (e.g., 10920136).
+Image (TEXT): File path to the image of the probe (e.g., /pin/1552768.jpg).
+Ref_Emdep (TEXT): Reference information (e.g., "02L29290656").
+Ref_Ingun (TEXT): Reference information.
+Ref_Fenmmital (TEXT): Reference information.
+Ref_Ptr (TEXT): Reference information.
+Type (TEXT): Type of APN (e.g., "'TIGE'", "'PIN'").
+Multi_APN (TEXT): Multiple APNs, if applicable (can be empty).
+Table 2: CP (Counterpart)
+Table Name: CP
+Columns:
+CP_ID (INTEGER, PRIMARY KEY): Unique identifier for each CP.
+Client_ID_1 (TEXT): Customer name (e.g., "JLR").
+PRJ_ID1 (TEXT): Car line name (e.g., "MAIN L551").
+CP (TEXT): Counterpart name (e.g., "C3LN72").
+Image (TEXT): File path to the image of the CP (e.g., /CP/C3LN72.jpg).
+OT_rfrence (TEXT): Identifier of the CP (e.g., "2018TU-37625P REF:10820373").
+PIN1_ID (INTEGER, FOREIGN KEY referencing APN.PIN_id): APN 1.
+Qte_1 (INTEGER): Quantity of APN 1.
+PIN2_ID (INTEGER, FOREIGN KEY referencing APN.PIN_id): APN 2.
+Qte_2 (INTEGER): Quantity of APN 2.
+PIN3_ID (INTEGER, FOREIGN KEY referencing APN.PIN_id): APN 3.
+Qte_3 (INTEGER): Quantity of APN 3.
+PIN4_ID (INTEGER, FOREIGN KEY referencing APN.PIN_id): APN 4.
+QTE_4 (INTEGER): Quantity of APN 4.
+TIGE_1_ID (INTEGER, FOREIGN KEY referencing APN.PIN_id): APN 5.
+Qte_Tige_1 (INTEGER): Quantity of APN 5.
+TIGE_2_ID (INTEGER, FOREIGN KEY referencing APN.PIN_id): APN 6.
+Qte_Tige_2 (INTEGER): Quantity of APN 6.
+RESSORT_1_ID (INTEGER, FOREIGN KEY referencing APN.PIN_id): APN 7.
+RESSORT_2_ID (INTEGER, FOREIGN KEY referencing APN.PIN_id): APN 8.
+3. Relationship:
+Relationship Type: One-to-many. Each CP record can have up to 8 associated APNs (identified by PIN1_ID through RESSORT_1_ID). These columns are foreign keys referencing the PIN_id (primary key) in the APN table.
+
+4. User Interface (UI) Requirements:
+Landing Page:
+Customer Selection: big buttons to select a customer from (Client_ID_1 from CP table, i want to show all the unique values of the culmon ). for example Options: "A", "B", "C" 
+Car Line Selection: An appropriate cascading button also appears of the customer that has been selected. it should list the car lines from the PRJ_ID1 from CP table associated with the chosen customer.
+CP Name Input: A text input field for entering the CP name (should be in CP from CP table). This appears after the car line is selected.
+Search Button: A button labeled "Search" to initiate the search.
+so basically  it search the cp from that have the selected carline and customer
+Results Page:
+CP Details: Display the following information for the found CP:
+Customer (Client_ID_1)
+Car Line (PRJ_ID1)
+CP Name (CP)
+OT Reference (OT_rfrence)
+CP Image (Image) -
+
+APN type: display the APN type
+Quantities: Display the corresponding quantities (Qte_1, Qte_2 etc.) alongside each displayed APN.
