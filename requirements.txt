@@ -4,4 +4,8 @@ sqlalchemy==2.0.27
 email-validator==2.1.0.post1
 gunicorn==21.2.0
 psycopg2-binary==2.9.9
+<<<<<<< HEAD
 routes==2.5.1 
+=======
+routes==2.5.1 
+>>>>>>> 5f15571774e4b33623dff95a6704b54097d5ff6a
