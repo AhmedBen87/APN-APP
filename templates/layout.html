@@ -27,13 +27,19 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link {{ 'active' if request.endpoint == 'index' else '' }}" href="{{ url_for('index') }}">Search CP</a>
+                        <a class="nav-link d-flex align-items-center {{ 'active' if request.endpoint == 'index' else '' }}" href="{{ url_for('index') }}">
+                            <i class="fas fa-search fa-fw me-2"></i>Search CP
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ 'active' if request.endpoint == 'search_apn_form' else '' }}" href="{{ url_for('search_apn_form') }}">Search APN</a>
+                        <a class="nav-link d-flex align-items-center {{ 'active' if request.endpoint == 'search_apn_form' else '' }}" href="{{ url_for('search_apn_form') }}">
+                           <i class="fas fa-crosshairs fa-fw me-2"></i>Search APN
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ 'active' if request.endpoint == 'apn_database' else '' }}" href="{{ url_for('apn_database') }}">APN Database</a>
+                        <a class="nav-link d-flex align-items-center {{ 'active' if request.endpoint == 'apn_database' else '' }}" href="{{ url_for('apn_database') }}">
+                           <i class="fas fa-database fa-fw me-2"></i>APN Database
+                        </a>
                     </li>
                 </ul>
             </div>
