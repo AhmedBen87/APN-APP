@@ -4,6 +4,7 @@ from models import CP, APN
 from extensions import db
 import os
 import logging
+from collections import defaultdict
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -166,6 +167,136 @@ def register_routes(app):
         except Exception as e:
             logging.error(f"Error serving profile image {filename}: {str(e)}")
             abort(404)
+
+    @app.route('/search_apn', methods=['GET'])
+    def search_apn_form():
+        """Display the form to search by APN."""
+        return render_template('search_apn_form.html')
+
+    @app.route('/search_apn_results', methods=['GET'])
+    def search_apn_results():
+        """Search for CPs containing a specific APN and display results."""
+        apn_query = request.args.get('apn_dpn', '').strip()
+        
+        if not apn_query:
+            return render_template('search_apn_form.html', error="Please enter an APN (DPN) to search.")
+        
+        # Find the APN record by DPN (case-insensitive search)
+        target_apn = APN.query.filter(func.lower(APN.DPN) == func.lower(apn_query)).first()
+        
+        if not target_apn:
+            return render_template('search_apn_form.html', error=f"APN with DPN '{apn_query}' not found.")
+        
+        target_pin_id = target_apn.PIN_id
+        
+        # Define the mapping between PIN fields and their corresponding quantity fields
+        pin_to_qty_map = {
+            CP.PIN1_ID: CP.Qte_1,
+            CP.PIN2_ID: CP.Qte_2,
+            CP.PIN3_ID: CP.Qte_3,
+            CP.PIN4_ID: CP.QTE_4,
+            CP.TIGE_1_ID: CP.Qte_Tige_1,
+            CP.TIGE_2_ID: CP.Qte_Tige_2,
+            # RESSORT fields might not have quantities, handle appropriately if needed
+            # CP.RESSORT_1_ID: ?, 
+            # CP.RESSORT_2_ID: ?
+        }
+        
+        # Find all CPs that reference this APN's PIN_id
+        cp_results = CP.query.filter(
+            or_(
+                CP.PIN1_ID == target_pin_id,
+                CP.PIN2_ID == target_pin_id,
+                CP.PIN3_ID == target_pin_id,
+                CP.PIN4_ID == target_pin_id,
+                CP.TIGE_1_ID == target_pin_id,
+                CP.TIGE_2_ID == target_pin_id,
+                CP.RESSORT_1_ID == target_pin_id,
+                CP.RESSORT_2_ID == target_pin_id
+            )
+        ).order_by(CP.Client_ID_1, CP.PRJ_ID1, CP.CP).all()
+        
+        total_cps_found = len(cp_results)
+        total_apn_quantity = 0
+        cp_data_with_qty = [] # Store CP data along with the quantity of the searched APN
+        found_in_carlines_set = set() # Use a set to store unique carlines
+
+        # Calculate total quantity and quantity per CP
+        for cp in cp_results:
+            quantity_in_this_cp = 0
+            if cp.PIN1_ID == target_pin_id and cp.Qte_1 is not None: quantity_in_this_cp += cp.Qte_1
+            if cp.PIN2_ID == target_pin_id and cp.Qte_2 is not None: quantity_in_this_cp += cp.Qte_2
+            if cp.PIN3_ID == target_pin_id and cp.Qte_3 is not None: quantity_in_this_cp += cp.Qte_3
+            if cp.PIN4_ID == target_pin_id and cp.QTE_4 is not None: quantity_in_this_cp += cp.QTE_4 # Check column name
+            if cp.TIGE_1_ID == target_pin_id and cp.Qte_Tige_1 is not None: quantity_in_this_cp += cp.Qte_Tige_1
+            if cp.TIGE_2_ID == target_pin_id and cp.Qte_Tige_2 is not None: quantity_in_this_cp += cp.Qte_Tige_2
+            # Add checks for RESSORT if they have quantities
+            
+            total_apn_quantity += quantity_in_this_cp
+            cp_data_with_qty.append({'cp': cp, 'quantity': quantity_in_this_cp})
+            
+            # Add carline to the set
+            if cp.PRJ_ID1:
+                found_in_carlines_set.add(cp.PRJ_ID1)
+
+        # Convert set to sorted list for consistent display
+        found_in_carlines = sorted(list(found_in_carlines_set))
+
+        # Group results by Customer (Client_ID_1) and Carline (PRJ_ID1)
+        grouped_results = defaultdict(lambda: defaultdict(list))
+        for item in cp_data_with_qty:
+            cp = item['cp']
+            quantity = item['quantity']
+            customer = cp.Client_ID_1 or "Unknown Customer"
+            carline = cp.PRJ_ID1 or "Unknown Carline"
+            grouped_results[customer][carline].append({'cp': cp, 'quantity': quantity})
+            
+        # Import the helper function if needed in the results template
+        from helpers import get_apn_details 
+
+        return render_template(
+            'results_apn.html',
+            apn_query=apn_query,
+            target_apn=target_apn,
+            grouped_results=grouped_results,
+            total_cps_found=total_cps_found,
+            total_apn_quantity=total_apn_quantity, 
+            found_in_carlines=found_in_carlines, # Pass the list of carlines
+            get_apn_details=get_apn_details 
+        )
+
+    @app.route('/apn_database')
+    def apn_database():
+        """Display the entire APN database with total quantities across all CPs."""
+        try:
+            # Calculate total quantities for each APN PIN_id across all CPs
+            apn_total_quantities = defaultdict(int)
+            all_cps = CP.query.all()
+            for cp in all_cps:
+                if cp.PIN1_ID is not None and cp.Qte_1 is not None: apn_total_quantities[cp.PIN1_ID] += cp.Qte_1
+                if cp.PIN2_ID is not None and cp.Qte_2 is not None: apn_total_quantities[cp.PIN2_ID] += cp.Qte_2
+                if cp.PIN3_ID is not None and cp.Qte_3 is not None: apn_total_quantities[cp.PIN3_ID] += cp.Qte_3
+                if cp.PIN4_ID is not None and cp.QTE_4 is not None: apn_total_quantities[cp.PIN4_ID] += cp.QTE_4
+                if cp.TIGE_1_ID is not None and cp.Qte_Tige_1 is not None: apn_total_quantities[cp.TIGE_1_ID] += cp.Qte_Tige_1
+                if cp.TIGE_2_ID is not None and cp.Qte_Tige_2 is not None: apn_total_quantities[cp.TIGE_2_ID] += cp.Qte_Tige_2
+                # Ressort fields don't have associated quantity columns in the CP model
+
+            # Fetch all APN records, ordered by DPN
+            all_apns = APN.query.order_by(APN.DPN).all()
+            
+            # Combine APN data with calculated total quantities
+            apn_data_with_total = []
+            for apn in all_apns:
+                total_db_quantity = apn_total_quantities.get(apn.PIN_id, 0)
+                apn_data_with_total.append({
+                    'apn': apn,
+                    'total_db_quantity': total_db_quantity
+                })
+
+            return render_template('apn_database.html', apn_data=apn_data_with_total)
+        except Exception as e:
+            logging.error(f"Error fetching APN database: {str(e)}")
+            abort(500) 
 
     @app.errorhandler(404)
     def page_not_found(e):

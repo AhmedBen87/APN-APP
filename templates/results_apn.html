@@ -1,0 +1,112 @@
+{% extends "layout.html" %}
+
+{% block title %}APN Search Results{% endblock %}
+
+{% block content %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <h2 class="mb-0">Results for APN: {{ apn_query }}</h2>
+        <a href="{{ url_for('search_apn_form') }}" class="btn btn-outline-light">
+            <i class="fas fa-search me-1"></i> New APN Search
+        </a>
+    </div>
+
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>
+                 {{ total_cps_found }} Counterparts found for APN: {{ target_apn.DPN }} {{ target_apn.Type }} 
+                {% if found_in_carlines %}
+                    in carline(s): {{ found_in_carlines | join(', ') }}
+                {% endif %}.
+            </strong>
+            <br>
+            <strong>Total: {{ total_apn_quantity }} Uints</strong>
+        </div>
+
+        {% if grouped_results %}
+            {% for customer, carlines in grouped_results.items() %}
+            {% set customer_loop_index = loop.index %}
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h3 class="mb-0">
+                        <a href="#customer-{{ customer_loop_index }}" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="customer-{{ customer_loop_index }}" class="text-white text-decoration-none d-block">
+                            Customer: {{ customer }} - Found {{ carlines | length }} Carlines
+                            <i class="fas fa-chevron-down float-end"></i>
+                        </a>
+                    </h3>
+                </div>
+                <div class="collapse" id="customer-{{ customer_loop_index }}">
+                    <div class="card-body">
+                        {% for carline, cp_items in carlines.items() %}
+                        {% set carline_loop_index = loop.index %}
+                        <div class="card mb-3">
+                            <div class="card-header bg-secondary text-white">
+                                <h4 class="mb-0">
+                                    <a href="#carline-{{ customer_loop_index }}-{{ carline_loop_index }}" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="carline-{{ customer_loop_index }}-{{ carline_loop_index }}" class="text-white text-decoration-none d-block">
+                                        Car Line: {{ carline }} - Found {{ cp_items | length }} CPs
+                                        <i class="fas fa-chevron-down float-end"></i>
+                                    </a>
+                                </h4>
+                            </div>
+                            <div class="collapse" id="carline-{{ customer_loop_index }}-{{ carline_loop_index }}">
+                                <div class="card-body">
+                                    <div class="list-group">
+                                        {% for item in cp_items %}
+                                        {% set cp = item.cp %}
+                                        {% set quantity = item.quantity %}
+                                        <div class="list-group-item list-group-item-action flex-column align-items-start mb-3 border rounded p-3">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h5 class="mb-1">CP: {{ cp.CP }}</h5>
+                                                <small>CP ID: {{ cp.CP_ID }}</small>
+                                            </div>
+                                            <div class="row mt-2">
+                                                <div class="col-md-8">
+                                                    <p class="mb-1"><strong>OT Reference:</strong> {{ cp.OT_rfrence or 'N/A' }}</p>
+                                                    {% set apn_details = get_apn_details(cp) %}
+                                                    <div>
+                                                        <strong>APN:</strong> 
+                                                        {% if apn_details %}
+                                                            {{ apn_details | map(attribute='dpn') | join(', ') }}
+                                                        {% else %}
+                                                            None listed.
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="mt-1">
+                                                        <strong>Quantity :</strong> {{ quantity }}
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4 text-center">
+                                                    {% if cp.Image %}
+                                                        <div class="image-container-small border rounded p-1" style="max-width: 150px; margin: auto;">
+                                                            {% if '/CP_SUB51/' in cp.Image %}
+                                                            <img src="{{ url_for('serve_cp_sub51_image', filename=cp.Image.split('/')[-1]) }}" alt="CP Image for {{ cp.CP }}" class="img-fluid">
+                                                            {% else %}
+                                                            <img src="{{ url_for('serve_cp_image', filename=cp.Image.split('/')[-1]) }}" alt="CP Image for {{ cp.CP }}" class="img-fluid">
+                                                            {% endif %}
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="alert alert-secondary p-1 mt-1">No image</div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                No Counterparts found using this APN.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

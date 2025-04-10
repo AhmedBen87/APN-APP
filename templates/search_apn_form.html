@@ -1,0 +1,25 @@
+{% extends 'layout.html' %}
+
+{% block title %}Search by APN{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Search by APN (DPN)</h2>
+    <hr>
+
+    {% if error %}
+        <div class="alert alert-danger" role="alert">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    <form action="{{ url_for('search_apn_results') }}" method="GET" class="mb-4">
+        <div class="mb-3">
+            <label for="apn_dpn" class="form-label">Enter APN (DPN):</label>
+            <input type="text" class="form-control" id="apn_dpn" name="apn_dpn" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+</div>
+{% endblock %} 

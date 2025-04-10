@@ -1,0 +1,141 @@
+{% extends "layout.html" %}
+
+{% block title %}APN Database{% endblock %}
+
+{% block content %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+        <h2 class="mb-0">APN Database</h2>
+        {# Optional: Add a button or link if needed #}
+    </div>
+    <div class="card-body">
+        {% if apn_data %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>PIN ID</th>
+                        <th>DPN</th>
+                        <th>Type</th>
+                        <th>Total Qty in DB</th>
+                        <th>Image</th>
+                        <th>Ref Emdep</th>
+                        <th>Ref Ingun</th>
+                        <th>Ref Fenmmital</th>
+                        <th>Ref Ptr</th>
+                        <th>Multi APN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in apn_data %}
+                    {% set apn = item.apn %}
+                    {% set total_db_quantity = item.total_db_quantity %}
+                    <tr>
+                        <td>{{ apn.PIN_id }}</td>
+                        <td>{{ apn.DPN or 'N/A' }}</td>
+                        <td>{{ apn.Type or 'N/A' }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ total_db_quantity }}</span>
+                        </td>
+                        <td>
+                            {% if apn.Image %}
+                                {% set img_filename = apn.Image.split('/')[-1] %}
+                                {% if '/pin/' in apn.Image %}
+                                    {% set full_img_url = url_for('serve_apn_pin_image', filename=img_filename) %}
+                                {% else %}
+                                    {% set full_img_url = url_for('serve_apn_image', filename=img_filename) %}
+                                {% endif %}
+                                {# Wrap image in link for modal trigger #}
+                                <a href="#" data-bs-toggle="modal" data-bs-target="#imageModal" data-img-src="{{ full_img_url }}">
+                                    <img src="{{ full_img_url }}" alt="APN Image for {{ apn.DPN }}" class="img-thumbnail" style="max-height: 100px;"> {# Increased max-height #}
+                                </a>
+                            {% else %}
+                                <span class="text-muted">No Image</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ apn.Ref_Emdep or 'N/A' }}</td>
+                        <td>{{ apn.Ref_Ingun or 'N/A' }}</td>
+                        <td>{{ apn.Ref_Fenmmital or 'N/A' }}</td>
+                        <td>{{ apn.Ref_Ptr or 'N/A' }}</td>
+                        <td>{{ apn.Multi_APN or 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            The APN database is empty or could not be loaded.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content bg-dark">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-light" id="imageModalLabel">APN Image</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="modalImage" src="" class="img-fluid" alt="Enlarged APN Image">
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{# Add custom JavaScript at the end of the body (layout.html might be better, but this works) #}
+{% block scripts %}
+{{ super() }} {# Include scripts from layout.html if any #}
+<script>
+  var imageModal = document.getElementById('imageModal')
+  imageModal.addEventListener('show.bs.modal', function (event) {
+    console.log('Modal show event triggered.'); // Debug: Check if event fires
+    // Button that triggered the modal
+    var triggerElement = event.relatedTarget;
+    console.log('Trigger Element:', triggerElement); // Debug: Check the element that opened the modal
+    
+    // Ensure triggerElement is valid and has the attribute
+    if (!triggerElement || typeof triggerElement.getAttribute !== 'function') {
+        console.error('Invalid trigger element for modal:', triggerElement);
+        return; // Exit if trigger element is not as expected
+    }
+
+    // Extract image source from data-img-src attribute
+    var imageSrc = triggerElement.getAttribute('data-img-src');
+    console.log('Image Source from data attribute:', imageSrc); // Debug: Check the extracted URL
+    
+    if (!imageSrc) {
+        console.error('data-img-src attribute is missing or empty on trigger element.');
+        return; // Exit if no image source found
+    }
+
+    // Update the modal's image source
+    var modalImage = imageModal.querySelector('#modalImage');
+    console.log('Modal Image Element:', modalImage); // Debug: Check if the img tag is found
+    
+    if (modalImage) {
+        modalImage.src = imageSrc;
+        console.log('Set modalImage.src to:', imageSrc); // Debug: Confirm src is set
+    } else {
+        console.error('Could not find #modalImage element inside the modal.');
+    }
+    
+    // Optional: Update modal title if needed (e.g., with DPN)
+    // ...
+  });
+
+  // Clear the image source when the modal is hidden to prevent flashing old image
+  imageModal.addEventListener('hidden.bs.modal', function (event) {
+    var modalImage = imageModal.querySelector('#modalImage')
+    if (modalImage) { // Check if element exists before setting src
+        modalImage.src = ""; 
+    }
+  });
+</script>
+{% endblock %} 
