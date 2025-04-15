@@ -1340,3 +1340,67 @@ def register_routes(app):
             location=location_data,
             all_cabinets=all_cabinets
         )
+
+    @app.route('/delete_apn/<int:pin_id>', methods=['POST'])
+    @login_required
+    def delete_apn(pin_id):
+        """Delete an APN by PIN_id after confirmation."""
+        try:
+            # Find the APN to delete
+            apn_to_delete = APN.query.get_or_404(pin_id)
+            
+            # Check if the APN is used in any CP
+            used_in_cp = CP.query.filter(
+                or_(
+                     CP.PIN1_ID == pin_id, 
+                     CP.PIN2_ID == pin_id,
+                     CP.PIN3_ID == pin_id,
+                     CP.PIN4_ID == pin_id,
+                     CP.TIGE_1_ID == pin_id,
+                     CP.TIGE_2_ID == pin_id,
+                     CP.RESSORT_1_ID == pin_id,
+                     CP.RESSORT_2_ID == pin_id
+                )
+            ).first()
+            
+            if used_in_cp:
+                flash(f'Cannot delete APN \'{apn_to_delete.DPN}\'. It is currently used in at least one CP.', 'danger')
+                return redirect(url_for('apn_database'))
+            
+            # Store information for flash message
+            dpn = apn_to_delete.DPN
+            
+            # Check for image files to delete
+            if apn_to_delete.Image:
+                try:
+                    # Determine if it's a PIN or regular APN image
+                    if '/pin/' in apn_to_delete.Image:
+                        image_folder = current_app.config['APN_PIN_IMAGES_FOLDER']
+                    else:
+                        image_folder = current_app.config['APN_IMAGES_FOLDER']
+                    
+                    # Extract filename from the image path
+                    filename = apn_to_delete.Image.split('/')[-1]
+                    image_path = os.path.join(image_folder, filename)
+                    
+                    # Delete the image file if it exists
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                        logging.info(f"Deleted image file: {image_path}")
+                except Exception as e:
+                    logging.error(f"Error deleting image file: {str(e)}")
+                    # Continue with deletion even if image removal fails
+            
+            # Delete the APN record
+            db.session.delete(apn_to_delete)
+            db.session.commit()
+            
+            flash(f'Successfully deleted APN: {dpn}', 'success')
+            return redirect(url_for('apn_database'))
+            
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f"Error deleting APN: {str(e)}")
+            logging.exception("Traceback:")
+            flash('Error deleting APN. Please check logs.', 'danger')
+            return redirect(url_for('apn_database'))
