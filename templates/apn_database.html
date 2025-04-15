@@ -9,59 +9,120 @@
         {# Optional: Add a button or link if needed #}
     </div>
     <div class="card-body">
+        <!-- APN Search Section (moved from search_apn_form.html) -->
+        <div class="mb-4">
+            <h3 id="searchHeading">Search by APN</h3>
+            
+            <!-- Search Type Buttons -->
+            <div class="mb-3">
+                <div class="btn-group w-100" role="group" aria-label="Search type options">
+                    <button type="button" class="btn btn-outline-primary active" data-search-type="apn" onclick="changeSearchType('apn')">APN</button>
+                    <button type="button" class="btn btn-outline-primary" data-search-type="emdep" onclick="changeSearchType('emdep')">Emdep Ref</button>
+                    <button type="button" class="btn btn-outline-primary" data-search-type="fenmmital" onclick="changeSearchType('fenmmital')">Fenmmital Ref</button>
+                    <button type="button" class="btn btn-outline-primary" data-search-type="ingun" onclick="changeSearchType('ingun')">Ingun Ref</button>
+                    <button type="button" class="btn btn-outline-primary" data-search-type="ptr" onclick="changeSearchType('ptr')">PTR Ref</button>
+                </div>
+            </div>
+            
+            <hr>
+
+            <form action="{{ url_for('search_apn_results') }}" method="GET" class="mb-4" id="searchForm">
+                <div class="mb-3">
+                    <label for="searchInput" class="form-label" id="searchLabel">Enter APN:</label>
+                    <div class="position-relative">
+                        <input type="text" class="form-control" id="searchInput" name="apn_dpn" required autocomplete="off">
+                        <ul class="suggestions-list list-group position-absolute w-100 d-none" id="suggestionsList"></ul>
+                    </div>
+                    
+                    <!-- Hidden field to indicate search type -->
+                    <input type="hidden" id="searchType" name="search_type" value="apn">
+                </div>
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary search-btn">Search</button>
+                </div>
+            </form>
+        </div>
+        
+        <hr class="my-4">
+        
         {% if apn_data %}
         <div class="table-responsive">
-            <table class="table table-striped table-hover table-bordered align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>PIN ID</th>
-                        <th>DPN</th>
-                        <th>Type</th>
-                        <th>Total Qty in DB</th>
-                        <th>Image</th>
-                        <th>Ref Emdep</th>
-                        <th>Ref Ingun</th>
-                        <th>Ref Fenmmital</th>
-                        <th>Ref Ptr</th>
-                        <th>Multi APN</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in apn_data %}
-                    {% set apn = item.apn %}
-                    {% set total_db_quantity = item.total_db_quantity %}
-                    <tr>
-                        <td>{{ apn.PIN_id }}</td>
-                        <td>{{ apn.DPN or 'N/A' }}</td>
-                        <td>{{ apn.Type or 'N/A' }}</td>
-                        <td>
-                            <span class="badge bg-secondary">{{ total_db_quantity }}</span>
-                        </td>
-                        <td>
-                            {% if apn.Image %}
-                                {% set img_filename = apn.Image.split('/')[-1] %}
-                                {% if '/pin/' in apn.Image %}
-                                    {% set full_img_url = url_for('serve_apn_pin_image', filename=img_filename) %}
+            <div style="min-width: 100%; padding-bottom: 15px;">
+                <table class="table table-striped table-hover table-bordered align-middle" style="width: 100%; table-layout: fixed;">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 5%;">PIN ID</th>
+                            <th style="width: 8%;">APN</th>
+                            <th style="width: 6%;">Type</th>
+                            <th style="width: 4%;">T Qte</th>
+                            <th style="width: 10%;">Image</th>
+                            <th style="width: 10%;">Ref Emdep</th>
+                            <th style="width: 10%;">Ref Ingun</th>
+                            <th style="width: 10%;">Ref Fenmmital</th>
+                            <th style="width: 10%;">Ref Ptr</th>
+                            <th style="width: 10%;">Multi APN</th>
+                            <th style="width: 12%;">Location</th>
+                            <th style="width: 5%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in apn_data %}
+                        {% set apn = item.apn %}
+                        {% set total_db_quantity = item.total_db_quantity %}
+                        <tr>
+                            <td>{{ apn.PIN_id }}</td>
+                            <td>{{ apn.DPN or 'N/A' }}</td>
+                            <td>{{ apn.Type or 'N/A' }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ total_db_quantity }}</span>
+                            </td>
+                            <td style="width: 120px;">
+                                {% if apn.Image %}
+                                    {% set img_filename = apn.Image.split('/')[-1] %}
+                                    {% if '/pin/' in apn.Image %}
+                                        {% set full_img_url = url_for('serve_apn_pin_image', filename=img_filename) %}
+                                    {% else %}
+                                        {% set full_img_url = url_for('serve_apn_image', filename=img_filename) %}
+                                    {% endif %}
+                                    {# Wrap image in link for modal trigger #}
+                                    <a href="#" data-bs-toggle="modal" data-bs-target="#imageModal" data-img-src="{{ full_img_url }}">
+                                        <img src="{{ full_img_url }}" alt="APN Image for {{ apn.DPN }}" class="img-thumbnail" style="max-width: 100px; height: auto; max-height: 80px;">
+                                    </a>
                                 {% else %}
-                                    {% set full_img_url = url_for('serve_apn_image', filename=img_filename) %}
+                                    <span class="text-muted">No Image</span>
                                 {% endif %}
-                                {# Wrap image in link for modal trigger #}
-                                <a href="#" data-bs-toggle="modal" data-bs-target="#imageModal" data-img-src="{{ full_img_url }}">
-                                    <img src="{{ full_img_url }}" alt="APN Image for {{ apn.DPN }}" class="img-thumbnail" style="max-height: 100px;"> {# Increased max-height #}
+                            </td>
+                            <td>{{ apn.Ref_Emdep or 'N/A' }}</td>
+                            <td>{{ apn.Ref_Ingun or 'N/A' }}</td>
+                            <td>{{ apn.Ref_Fenmmital or 'N/A' }}</td>
+                            <td>{{ apn.Ref_Ptr or 'N/A' }}</td>
+                            <td style="width: 120px;">{{ apn.Multi_APN or 'N/A' }}</td>
+                            <td style="width: 140px;">
+                                {% if apn.Location %}
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-warning text-dark me-1">{{ apn.Location }}</span>
+                                        <button type="button" class="btn btn-sm btn-warning" 
+                                            data-bs-toggle="modal" data-bs-target="#locateApnModal"
+                                            data-apn-id="{{ apn.PIN_id }}"
+                                            data-dpn="{{ apn.DPN }}"
+                                            data-location="{{ apn.Location }}">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                        </button>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">Not Set</span>
+                                {% endif %}
+                            </td>
+                            <td style="width: 100px;">
+                                <a href="{{ url_for('edit_apn', pin_id=apn.PIN_id) }}" class="btn btn-sm btn-info" title="Edit {{ apn.DPN }}">
+                                    <i class="fas fa-edit"></i> Edit
                                 </a>
-                            {% else %}
-                                <span class="text-muted">No Image</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ apn.Ref_Emdep or 'N/A' }}</td>
-                        <td>{{ apn.Ref_Ingun or 'N/A' }}</td>
-                        <td>{{ apn.Ref_Fenmmital or 'N/A' }}</td>
-                        <td>{{ apn.Ref_Ptr or 'N/A' }}</td>
-                        <td>{{ apn.Multi_APN or 'N/A' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
         {% else %}
         <div class="alert alert-warning">
@@ -87,12 +148,58 @@
   </div>
 </div>
 
+<!-- Locate APN Modal -->
+<div class="modal fade" id="locateApnModal" tabindex="-1" aria-labelledby="locateApnModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="locateApnModalLabel">Locate APN: <span id="modal-locate-dpn"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6 offset-md-3 text-center">
+            <div class="cabinet-visualization">
+              <!-- Cabinet visualization similar to locate_apn.html -->
+              <div class="cabinet-container position-relative">
+                <h4 id="armoire-label" class="mb-3">ARMOIRE</h4>
+                <!-- Cabinet SVG -->
+                <svg width="300" height="500" viewBox="0 0 300 500" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Cabinet body -->
+                  <rect x="20" y="20" width="260" height="460" rx="5" fill="#555555" stroke="#333333" stroke-width="2"/>
+                  
+                  <!-- Cabinet top -->
+                  <rect x="10" y="10" width="280" height="20" rx="5" fill="#666666" stroke="#333333" stroke-width="2"/>
+                  
+                  <!-- Cabinet bottom -->
+                  <rect x="10" y="470" width="280" height="20" rx="5" fill="#666666" stroke="#333333" stroke-width="2"/>
+                  
+                  <!-- Cabinet badge/label -->
+                  <rect x="125" y="25" width="50" height="25" rx="3" fill="#888888" stroke="#444444" stroke-width="1"/>
+                  <text id="cabinet-label" x="150" y="42" font-family="Arial" font-size="16" fill="#ffa500" text-anchor="middle" dominant-baseline="middle">?</text>
+                  
+                  <!-- Drawers - will be populated by JavaScript -->
+                  <g id="drawers-container"></g>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {# Add custom JavaScript at the end of the body (layout.html might be better, but this works) #}
 {% block scripts %}
 {{ super() }} {# Include scripts from layout.html if any #}
 <script>
+  // Image modal functionality
   var imageModal = document.getElementById('imageModal')
   imageModal.addEventListener('show.bs.modal', function (event) {
     console.log('Modal show event triggered.'); // Debug: Check if event fires
@@ -137,5 +244,353 @@
         modalImage.src = ""; 
     }
   });
+  
+  // Location Modal handling
+  const locateModal = document.getElementById('locateApnModal');
+  if (locateModal) {
+    locateModal.addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget;
+      const apnId = button.getAttribute('data-apn-id');
+      const dpn = button.getAttribute('data-dpn');
+      const locationStr = button.getAttribute('data-location');
+      
+      // Set DPN in modal
+      document.getElementById('modal-locate-dpn').textContent = dpn;
+      
+      // Parse location (format: "ARMOIRE X-YY")
+      let cabinet = '?';
+      let drawer = '??';
+      if (locationStr) {
+        // Remove "ARMOIRE " prefix if it exists
+        let locationParts = locationStr;
+        if (locationStr.startsWith("ARMOIRE ")) {
+          locationParts = locationStr.replace("ARMOIRE ", "");
+        }
+        
+        // Split by hyphen
+        const parts = locationParts.split('-');
+        if (parts.length == 2) {
+          cabinet = parts[0].trim();
+          drawer = parts[1].trim();
+        }
+      }
+      
+      // Update labels
+      document.getElementById('cabinet-label').textContent = cabinet;
+      document.getElementById('armoire-label').textContent = 'ARMOIRE ' + cabinet;
+      
+      // Clear existing drawers
+      const drawersContainer = document.getElementById('drawers-container');
+      drawersContainer.innerHTML = '';
+      
+      // Add drawers - with smaller dimensions
+      for (let i = 1; i <= 12; i++) {
+        // Drawer dimensions and positions
+        const drawerHeight = 30;
+        const drawerWidth = 240;
+        const drawerX = 30;
+        const drawerY = 50 + (i - 1) * (drawerHeight + 8);
+        
+        // Format drawer number as 2 digits
+        const drawerNumber = String(i).padStart(2, '0');
+        
+        // Drawer group element for SVG
+        const drawerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        drawerGroup.setAttribute('id', `drawer-${drawerNumber}`);
+        
+        // Is this the target drawer?
+        const isTargetDrawer = drawerNumber === drawer;
+        
+        // Drawer rectangle
+        const drawerRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        drawerRect.setAttribute('x', drawerX);
+        drawerRect.setAttribute('y', drawerY);
+        drawerRect.setAttribute('width', drawerWidth);
+        drawerRect.setAttribute('height', drawerHeight);
+        drawerRect.setAttribute('rx', '3');
+        drawerRect.setAttribute('fill', isTargetDrawer ? '#ffa500' : '#777777');
+        drawerRect.setAttribute('stroke', isTargetDrawer ? '#ff6600' : '#444444');
+        drawerRect.setAttribute('stroke-width', isTargetDrawer ? '2' : '1');
+        drawerGroup.appendChild(drawerRect);
+        
+        // Drawer handle
+        const handleWidth = 40;
+        const handleX = drawerX + (drawerWidth - handleWidth) / 2;
+        const handleY = drawerY + 5;
+        const handleHeight = drawerHeight - 10;
+        
+        const handleRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        handleRect.setAttribute('x', handleX);
+        handleRect.setAttribute('y', handleY);
+        handleRect.setAttribute('width', handleWidth);
+        handleRect.setAttribute('height', handleHeight);
+        handleRect.setAttribute('rx', '2');
+        handleRect.setAttribute('fill', isTargetDrawer ? '#663300' : '#555555');
+        drawerGroup.appendChild(handleRect);
+        
+        // Drawer number label
+        const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        textElement.setAttribute('x', drawerX + drawerWidth / 2);
+        textElement.setAttribute('y', drawerY + drawerHeight / 2);
+        textElement.setAttribute('font-family', 'Arial');
+        textElement.setAttribute('font-size', '14');
+        textElement.setAttribute('fill', isTargetDrawer ? '#000000' : '#cccccc');
+        textElement.setAttribute('text-anchor', 'middle');
+        textElement.setAttribute('dominant-baseline', 'middle');
+        textElement.textContent = drawerNumber;
+        drawerGroup.appendChild(textElement);
+        
+        // Add drawer to container
+        drawersContainer.appendChild(drawerGroup);
+      }
+    });
+  }
+  
+  // Function to change search type (from search_apn_form.html)
+  function changeSearchType(type) {
+      // Update active button
+      document.querySelectorAll('.btn-group .btn').forEach(btn => {
+          btn.classList.remove('active');
+      });
+      document.querySelector(`.btn[data-search-type="${type}"]`).classList.add('active');
+      
+      // Update form elements
+      const searchHeading = document.getElementById('searchHeading');
+      const searchLabel = document.getElementById('searchLabel');
+      const searchType = document.getElementById('searchType');
+      const searchInput = document.getElementById('searchInput');
+      
+      // Clear input field and hide suggestions
+      searchInput.value = '';
+      document.getElementById('suggestionsList').classList.add('d-none');
+      
+      // Set appropriate values based on type
+      searchType.value = type;
+      
+      switch(type) {
+          case 'apn':
+              searchHeading.textContent = 'Search by APN';
+              searchLabel.textContent = 'Enter APN:';
+              break;
+          case 'emdep':
+              searchHeading.textContent = 'Search by Emdep Reference';
+              searchLabel.textContent = 'Enter Emdep Reference:';
+              break;
+          case 'fenmmital':
+              searchHeading.textContent = 'Search by Fenmmital Reference';
+              searchLabel.textContent = 'Enter Fenmmital Reference:';
+              break;
+          case 'ingun':
+              searchHeading.textContent = 'Search by Ingun Reference';
+              searchLabel.textContent = 'Enter Ingun Reference:';
+              break;
+          case 'ptr':
+              searchHeading.textContent = 'Search by PTR Reference';
+              searchLabel.textContent = 'Enter PTR Reference:';
+              break;
+      }
+  }
+
+  // Autocomplete functionality (from search_apn_form.html)
+  document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('searchInput');
+      const suggestionsList = document.getElementById('suggestionsList');
+      const searchType = document.getElementById('searchType');
+      
+      let typingTimer;
+      
+      // Input event handler - fetch suggestions as user types
+      searchInput.addEventListener('input', function() {
+          clearTimeout(typingTimer);
+          const searchTerm = this.value.trim();
+          
+          if (searchTerm.length < 1) {
+              suggestionsList.classList.add('d-none');
+              return;
+          }
+          
+          // Debounce to prevent too many requests
+          typingTimer = setTimeout(() => {
+              fetch(`/apn_search_suggestions?search_type=${searchType.value}&term=${encodeURIComponent(searchTerm)}`)
+                  .then(response => response.json())
+                  .then(suggestions => {
+                      suggestionsList.innerHTML = '';
+                      
+                      if (suggestions.length > 0) {
+                          suggestions.forEach(suggestion => {
+                              const li = document.createElement('li');
+                              li.className = 'list-group-item list-group-item-action';
+                              li.textContent = suggestion.value;
+                              li.addEventListener('click', () => {
+                                  searchInput.value = suggestion.value;
+                                  suggestionsList.classList.add('d-none');
+                              });
+                              suggestionsList.appendChild(li);
+                          });
+                          suggestionsList.classList.remove('d-none');
+                      } else {
+                          suggestionsList.classList.add('d-none');
+                      }
+                  })
+                  .catch(error => {
+                      console.error('Error fetching suggestions:', error);
+                      suggestionsList.classList.add('d-none');
+                  });
+          }, 300); // 300ms delay
+      });
+      
+      // Hide suggestions when clicking outside
+      document.addEventListener('click', (e) => {
+          if (!searchInput.contains(e.target) && !suggestionsList.contains(e.target)) {
+              suggestionsList.classList.add('d-none');
+          }
+      });
+      
+      // Handle keyboard navigation within suggestions
+      searchInput.addEventListener('keydown', function(e) {
+          // If the dropdown is not visible, return
+          if (suggestionsList.classList.contains('d-none')) {
+              return;
+          }
+          
+          const suggestions = suggestionsList.querySelectorAll('li');
+          const activeItem = suggestionsList.querySelector('.active');
+          let activeIndex = -1;
+          
+          if (activeItem) {
+              for (let i = 0; i < suggestions.length; i++) {
+                  if (suggestions[i] === activeItem) {
+                      activeIndex = i;
+                      break;
+                  }
+              }
+          }
+          
+          // Arrow down
+          if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              if (activeIndex < suggestions.length - 1) {
+                  if (activeItem) {
+                      activeItem.classList.remove('active');
+                  }
+                  suggestions[activeIndex + 1].classList.add('active');
+                  suggestions[activeIndex + 1].scrollIntoView({ block: 'nearest' });
+              }
+          }
+          // Arrow up
+          else if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              if (activeIndex > 0) {
+                  if (activeItem) {
+                      activeItem.classList.remove('active');
+                  }
+                  suggestions[activeIndex - 1].classList.add('active');
+                  suggestions[activeIndex - 1].scrollIntoView({ block: 'nearest' });
+              }
+          }
+          // Enter key
+          else if (e.key === 'Enter') {
+              if (activeItem) {
+                  e.preventDefault();
+                  searchInput.value = activeItem.textContent;
+                  suggestionsList.classList.add('d-none');
+              }
+          }
+          // Escape key
+          else if (e.key === 'Escape') {
+              suggestionsList.classList.add('d-none');
+          }
+      });
+  });
 </script>
+
+<style>
+  /* Make reference buttons text white for better readability */
+  .btn-outline-primary {
+    color: white !important;
+  }
+  
+  /* Active button already has good contrast, no need to change */
+  .btn-outline-primary.active {
+    color: #fff !important;
+  }
+
+  /* Keyframes for pulsing effect */
+  @keyframes pulse-highlight {
+    0% {
+      filter: drop-shadow(0 0 0px rgba(255, 165, 0, 0.7));
+    }
+    50% {
+      filter: drop-shadow(0 0 10px rgba(255, 165, 0, 1));
+    }
+    100% {
+      filter: drop-shadow(0 0 0px rgba(255, 165, 0, 0.7));
+    }
+  }
+  
+  /* Apply animation to target drawer */
+  .target-drawer rect {
+    animation: pulse-highlight 2s infinite;
+  }
+  
+  /* Smooth transition for drawer movement */
+  .drawer {
+    transition: transform 1.5s ease-in-out;
+  }
+  
+  /* Enhance cabinet appearance */
+  .cabinet-container {
+    filter: drop-shadow(0 0 15px rgba(0, 0, 0, 0.5));
+    margin: 0 auto;
+    max-width: 300px;
+  }
+  
+  /* Compact icon button */
+  .btn-icon {
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+    height: 28px;
+    width: 30px;
+  }
+  
+  /* Table cell vertical alignment */
+  .table td {
+    vertical-align: middle;
+  }
+  
+  /* Make table responsive */
+  .table-responsive {
+    overflow-x: auto;
+    width: 100%;
+  }
+  
+  /* Location badge */
+  .badge.bg-warning {
+    padding: 0.35em 0.65em;
+    font-size: 0.85em;
+    --bs-bg-opacity: 1;
+    background-color: rgb(255, 165, 0) !important;
+  }
+  
+  /* Table cell padding */
+  .table td, .table th {
+    padding: 0.5rem;
+  }
+  
+  /* Edit button style */
+  .btn-info {
+    white-space: nowrap;
+  }
+  
+  /* Smaller buttons */
+  .btn-sm.btn-warning, .btn-sm.btn-info {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.75rem;
+  }
+  
+  /* Cabinet label color */
+  #armoire-label, #cabinet-label {
+    color: #ffa500;
+  }
+</style>
 {% endblock %} 

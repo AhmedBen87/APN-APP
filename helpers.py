@@ -35,8 +35,42 @@ def get_apn_details(cp):
                 'ref_ingun': mapping['apn'].Ref_Ingun,
                 'ref_fenmmital': mapping['apn'].Ref_Fenmmital,
                 'ref_ptr': mapping['apn'].Ref_Ptr,
-                'multi_apn': mapping['apn'].Multi_APN
+                'multi_apn': mapping['apn'].Multi_APN,
+                'location': mapping['apn'].Location
             }
             apn_details.append(apn_detail)
     
     return apn_details
+
+def parse_location(location_str):
+    """
+    Parse a location string into cabinet and drawer components
+    
+    Args:
+        location_str: A string in format "ARMOIRE X-YY" where X is the cabinet and YY is the drawer
+        
+    Returns:
+        A dictionary with 'cabinet' and 'drawer' keys, or None if parsing fails
+    """
+    if not location_str:
+        return None
+        
+    try:
+        # Remove "ARMOIRE " prefix if it exists
+        if "ARMOIRE " in location_str:
+            location_str = location_str.replace("ARMOIRE ", "")
+            
+        # Split by hyphen
+        parts = location_str.split('-')
+        if len(parts) == 2:
+            cabinet = parts[0].strip()
+            drawer = parts[1].strip()
+            return {
+                'cabinet': cabinet,
+                'drawer': drawer,
+                'full_location': location_str
+            }
+    except Exception:
+        pass
+        
+    return None

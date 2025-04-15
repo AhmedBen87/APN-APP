@@ -1,0 +1,139 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit APN - {{ apn.DPN }}{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-info text-white">
+        <h2 class="mb-0">Edit APN: {{ apn.DPN }} (ID: {{ apn.PIN_id }})</h2>
+    </div>
+    <div class="card-body">
+        {# Include flashed messages partial #}
+        {% include '_flashes.html' %}
+
+        <form method="POST" action="{{ url_for('edit_apn', pin_id=apn.PIN_id) }}" enctype="multipart/form-data">
+            
+            {# DPN Input #}
+            <div class="mb-3">
+                <label for="dpn" class="form-label">DPN <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="dpn" name="dpn" value="{{ apn.DPN or '' }}" required>
+            </div>
+
+            {# Type Select #}
+            <div class="mb-3">
+                <label for="type" class="form-label">Type <span class="text-danger">*</span></label>
+                <select class="form-select" id="type" name="type" required>
+                    <option value="" {% if not apn.Type %}selected{% endif %}>-- Select Type --</option>
+                    <option value="PIN" {% if apn.Type == 'PIN' %}selected{% endif %}>PIN</option>
+                    <option value="MICRO" {% if apn.Type == 'MICRO' %}selected{% endif %}>MICRO</option>
+                    <option value="TIGE" {% if apn.Type == 'TIGE' %}selected{% endif %}>TIGE</option>
+                    <option value="RESSORT" {% if apn.Type == 'RESSORT' %}selected{% endif %}>RESSORT</option>
+                    {# Add other types if necessary #}
+                </select>
+            </div>
+
+            {# Current Image Display #}
+            <div class="mb-3">
+                <label class="form-label">Current Image</label>
+                <div>
+                {% if apn.Image %}
+                    {% set img_filename = apn.Image.split('/')[-1] %}
+                    {% if '/pin/' in apn.Image %}
+                        {% set full_img_url = url_for('serve_apn_pin_image', filename=img_filename) %}
+                    {% else %}
+                        {% set full_img_url = url_for('serve_apn_image', filename=img_filename) %}
+                    {% endif %}
+                    <img src="{{ full_img_url }}" alt="Current APN Image for {{ apn.DPN }}" class="img-thumbnail mb-2" style="max-height: 150px;">
+                {% else %}
+                    <span class="text-muted">No current image.</span>
+                {% endif %}
+                </div>
+            </div>
+
+            {# Image Upload #}
+            <div class="mb-3">
+                <label for="image" class="form-label">Upload New Image (Optional)</label>
+                <input type="file" class="form-control" id="image" name="image" accept=".png, .jpg, .jpeg">
+                <div class="form-text">Leave blank to keep the current image. Allowed types: PNG, JPG, JPEG.</div>
+            </div>
+
+            {# Reference Fields #}
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="ref_emdep" class="form-label">Ref Emdep</label>
+                    <input type="text" class="form-control" id="ref_emdep" name="ref_emdep" value="{{ apn.Ref_Emdep or '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="ref_ingun" class="form-label">Ref Ingun</label>
+                    <input type="text" class="form-control" id="ref_ingun" name="ref_ingun" value="{{ apn.Ref_Ingun or '' }}">
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="ref_fenmmital" class="form-label">Ref Fenmmital</label>
+                    <input type="text" class="form-control" id="ref_fenmmital" name="ref_fenmmital" value="{{ apn.Ref_Fenmmital or '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="ref_ptr" class="form-label">Ref Ptr</label>
+                    <input type="text" class="form-control" id="ref_ptr" name="ref_ptr" value="{{ apn.Ref_Ptr or '' }}">
+                </div>
+            </div>
+
+            {# Multi APN #}
+            <div class="mb-3">
+                <label for="multi_apn" class="form-label">Multi APN</label>
+                <input type="text" class="form-control" id="multi_apn" name="multi_apn" value="{{ apn.Multi_APN or '' }}">
+            </div>
+
+            {# Location Field #}
+            <div class="mb-3">
+                <label class="form-label">Location</label>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">Cabinet</span>
+                            <select class="form-select" id="location_cabinet" name="location_cabinet">
+                                <option value="">-- Select Cabinet --</option>
+                                {% for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
+                                    {% if apn.Location and apn.Location.startswith('ARMOIRE ' + letter + '-') %}
+                                        <option value="{{ letter }}" selected>{{ letter }}</option>
+                                    {% else %}
+                                        <option value="{{ letter }}">{{ letter }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">Drawer</span>
+                            <select class="form-select" id="location_drawer" name="location_drawer">
+                                <option value="">-- Select Drawer --</option>
+                                {% for num in range(1, 11) %}
+                                    {% set drawer_id = '%02d' % num %}
+                                    {% if apn.Location and '-' + drawer_id in apn.Location %}
+                                        <option value="{{ drawer_id }}" selected>{{ drawer_id }}</option>
+                                    {% else %}
+                                        <option value="{{ drawer_id }}">{{ drawer_id }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <small class="text-muted">Format: ARMOIRE X-YY (cabinet-drawer)</small>
+            </div>
+
+            {# Submit Button #}
+            <div class="d-flex justify-content-end">
+                <a href="{{ url_for('apn_database') }}" class="btn btn-secondary me-2">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Update APN
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

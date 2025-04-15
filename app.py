@@ -3,7 +3,8 @@ import logging
 import sys
 from flask import Flask, send_from_directory
 from extensions import db
-from models import APN, CP
+from models import APN, CP, User
+from flask_login import LoginManager
 
 # Set up logging
 logging.basicConfig(
@@ -39,6 +40,17 @@ def create_app():
 
         # Initialize the app with the extension
         db.init_app(app)
+        
+        # Initialize Flask-Login
+        login_manager = LoginManager()
+        login_manager.init_app(app)
+        login_manager.login_view = 'login'
+        login_manager.login_message = 'Please log in to access this page.'
+        login_manager.login_message_category = 'warning'
+        
+        @login_manager.user_loader
+        def load_user(user_id):
+            return User.query.get(int(user_id))
 
         # Create tables
         with app.app_context():

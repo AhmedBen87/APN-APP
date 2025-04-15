@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APN Finder 2.0</title>
     
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.svg') }}" type="image/svg+xml">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" sizes="any">
+    
     <!-- Bootstrap CSS (Replit theme) -->
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
     
@@ -26,21 +30,69 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <!-- Search CP as standalone menu item -->
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center {{ 'active' if request.endpoint == 'index' else '' }}" href="{{ url_for('index') }}">
                             <i class="fas fa-search fa-fw me-2"></i>Search CP
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center {{ 'active' if request.endpoint == 'search_apn_form' else '' }}" href="{{ url_for('search_apn_form') }}">
-                           <i class="fas fa-crosshairs fa-fw me-2"></i>Search APN
-                        </a>
-                    </li>
+                    
+                    <!-- APN Database as standalone menu item -->
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center {{ 'active' if request.endpoint == 'apn_database' else '' }}" href="{{ url_for('apn_database') }}">
-                           <i class="fas fa-database fa-fw me-2"></i>APN Database
+                            <i class="fas fa-database fa-fw me-2"></i>APN Database
                         </a>
                     </li>
+                    
+                    {# Conditional Login/Logout/Admin Links #}
+                    {% if current_user.is_authenticated %}
+                        <!-- Admin Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cogs fa-fw me-2"></i>Administration
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('add_apn_form') }}">
+                                        <i class="fas fa-plus-circle fa-fw me-2"></i>Add APN
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('add_cp_form') }}">
+                                        <i class="fas fa-plus-square fa-fw me-2"></i>Add CP
+                                    </a>
+                                </li>
+                                {% if current_user.is_admin() %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item {{ 'active' if request.endpoint == 'manage_users' else '' }}" href="{{ url_for('manage_users') }}">
+                                        <i class="fas fa-users-cog fa-fw me-2"></i>Manage Users
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                        
+                        <!-- User Menu -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle fa-fw me-2"></i>{{ current_user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                        <i class="fas fa-sign-out-alt fa-fw me-2"></i>Logout
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link d-flex align-items-center {{ 'active' if request.endpoint == 'login' else '' }}" href="{{ url_for('login') }}">
+                               <i class="fas fa-sign-in-alt fa-fw me-2"></i>Login
+                            </a>
+                        </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
@@ -57,31 +109,33 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="footer mt-auto py-3 bg-dark text-light">
-        <div class="container text-center">
-            <div class="text-muted mb-2">
-                <span class="footer-profile">
-                    <img src="{{ url_for('static', filename='images/ahmed.jpeg') }}" alt="Ahmed" class="profile-img-footer">
-                    AHMED BENMIMOUN - MAINTENANCE, <img src="{{ url_for('serve_aptiv_logo') }}" alt="APTIV Logo" class="aptiv-logo-small me-1"> M6
-                    <a href="https://www.linkedin.com/in/ahmed-benmimoun-938816151" target="_blank" class="linkedin-btn">
-                        <i class="fab fa-linkedin-in"></i> 
+    <footer class="footer py-2 bg-dark text-light fixed-bottom">
+        <div class="container-fluid px-4">
+            <div class="d-flex justify-content-between align-items-center small">
+                <div class="d-flex align-items-center">
+                    <img src="{{ url_for('static', filename='images/ahmed.jpeg') }}" alt="Ahmed" class="profile-img-footer me-1" style="width: 20px; height: 20px;">
+                    <span class="me-1">A. BENMIMOUN</span>
+                    <a href="https://www.linkedin.com/in/ahmed-benmimoun-938816151" target="_blank" class="linkedin-btn me-2">
+                        <i class="fab fa-linkedin-in"></i>
                     </a>
-                </span>
-                <span class="footer-divider">|</span>
-                <span class="footer-profile">
-                    <img src="{{ url_for('static', filename='images/hassan.jpeg') }}" alt="Hassan" class="profile-img-footer">
-                    HASSAN KAZMOUHIO - PROCESS ENGINEERING, <img src="{{ url_for('serve_aptiv_logo') }}" alt="APTIV Logo" class="aptiv-logo-small me-1"> M6
+                    |
+                    <img src="{{ url_for('static', filename='images/hassan.jpeg') }}" alt="Hassan" class="profile-img-footer mx-1" style="width: 20px; height: 20px;">
+                    <span class="me-1">H. KAZMOUHI</span>
                     <a href="https://www.linkedin.com/in/hassan-kazmouhi-3779391a5" target="_blank" class="linkedin-btn">
-                        <i class="fab fa-linkedin-in"></i> 
+                        <i class="fab fa-linkedin-in"></i>
                     </a>
-                </span>
-            </div>
-            <div class="text-muted mt-1">
-                <i class="fas fa-map-marker-alt me-2"></i>
-                Cité Mohammed VI Tanger Tech (SATT) <img src="{{ url_for('serve_aptiv_logo') }}" alt="APTIV Logo" class="aptiv-logo-small me-1"> M6 | © 2025 APN Finder 2.0
+                </div>
+                <div>
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    Tanger Tech M6 | © 2025 APN Finder 2.0
+                    <img src="{{ url_for('serve_aptiv_logo') }}" alt="APTIV Logo" class="aptiv-logo-small ms-2" style="height: 16px;">
+                </div>
             </div>
         </div>
     </footer>
+
+    <!-- Add spacing at the bottom to prevent content from being hidden behind fixed footer -->
+    <div style="margin-bottom: 50px;"></div>
 
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

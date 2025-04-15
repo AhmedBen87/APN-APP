@@ -1,10 +1,48 @@
 {% extends 'layout.html' %}
 
-{% block title %}Search by APN{% endblock %}
+{% block title %}
+    {% if not search_type or search_type == 'apn' %}
+        Search by APN
+    {% elif search_type == 'emdep' %}
+        Search by Emdep Reference
+    {% elif search_type == 'fenmmital' %}
+        Search by Fenmmital Reference
+    {% elif search_type == 'ingun' %}
+        Search by Ingun Reference
+    {% elif search_type == 'ptr' %}
+        Search by PTR Reference
+    {% else %}
+        Reference Search
+    {% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Search by APN (DPN)</h2>
+    <h2 id="searchHeading">
+        {% if not search_type or search_type == 'apn' %}
+            
+        {% elif search_type == 'emdep' %}
+            Search by Emdep Reference
+        {% elif search_type == 'fenmmital' %}
+            Search by Fenmmital Reference
+        {% elif search_type == 'ingun' %}
+            Search by Ingun Reference
+        {% elif search_type == 'ptr' %}
+            Search by PTR Reference
+        {% endif %}
+    </h2>
+    
+    <!-- Search Type Buttons -->
+    <div class="mb-3">
+        <div class="btn-group w-100" role="group" aria-label="Search type options">
+            <button type="button" class="btn btn-outline-primary {% if not search_type or search_type == 'apn' %}active{% endif %}" data-search-type="apn" onclick="changeSearchType('apn')">APN</button>
+            <button type="button" class="btn btn-outline-primary {% if search_type == 'emdep' %}active{% endif %}" data-search-type="emdep" onclick="changeSearchType('emdep')">Emdep Ref</button>
+            <button type="button" class="btn btn-outline-primary {% if search_type == 'fenmmital' %}active{% endif %}" data-search-type="fenmmital" onclick="changeSearchType('fenmmital')">Fenmmital Ref</button>
+            <button type="button" class="btn btn-outline-primary {% if search_type == 'ingun' %}active{% endif %}" data-search-type="ingun" onclick="changeSearchType('ingun')">Ingun Ref</button>
+            <button type="button" class="btn btn-outline-primary {% if search_type == 'ptr' %}active{% endif %}" data-search-type="ptr" onclick="changeSearchType('ptr')">PTR Ref</button>
+        </div>
+    </div>
+    
     <hr>
 
     {% if error %}
@@ -13,13 +51,195 @@
         </div>
     {% endif %}
 
-    <form action="{{ url_for('search_apn_results') }}" method="GET" class="mb-4">
+    <form action="{{ url_for('search_apn_results') }}" method="GET" class="mb-4" id="searchForm">
         <div class="mb-3">
-            <label for="apn_dpn" class="form-label">Enter APN (DPN):</label>
-            <input type="text" class="form-control" id="apn_dpn" name="apn_dpn" required>
+            <label for="searchInput" class="form-label" id="searchLabel">
+                {% if not search_type or search_type == 'apn' %}
+                    Enter APN (DPN):
+                {% elif search_type == 'emdep' %}
+                    Enter Emdep Reference:
+                {% elif search_type == 'fenmmital' %}
+                    Enter Fenmmital Reference:
+                {% elif search_type == 'ingun' %}
+                    Enter Ingun Reference:
+                {% elif search_type == 'ptr' %}
+                    Enter PTR Reference:
+                {% endif %}
+            </label>
+            <div class="position-relative">
+                <input type="text" class="form-control" id="searchInput" name="apn_dpn" required autocomplete="off">
+                <ul class="suggestions-list list-group position-absolute w-100 d-none" id="suggestionsList"></ul>
+            </div>
+            
+            <!-- Hidden field to indicate search type -->
+            <input type="hidden" id="searchType" name="search_type" value="{{ search_type|default('apn') }}">
         </div>
-        <button type="submit" class="btn btn-primary">Search</button>
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary search-btn">Search</button>
+        </div>
     </form>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Function to change search type
+    function changeSearchType(type) {
+        // Update active button
+        document.querySelectorAll('.btn-group .btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`.btn[data-search-type="${type}"]`).classList.add('active');
+        
+        // Update form elements
+        const searchHeading = document.getElementById('searchHeading');
+        const searchLabel = document.getElementById('searchLabel');
+        const searchType = document.getElementById('searchType');
+        const searchInput = document.getElementById('searchInput');
+        
+        // Clear input field and hide suggestions
+        searchInput.value = '';
+        document.getElementById('suggestionsList').classList.add('d-none');
+        
+        // Set appropriate values based on type
+        searchType.value = type;
+        
+        switch(type) {
+            case 'apn':
+                searchHeading.textContent = 'Search by APN';
+                searchLabel.textContent = 'Enter APN (DPN):';
+                break;
+            case 'emdep':
+                searchHeading.textContent = 'Search by Emdep Reference';
+                searchLabel.textContent = 'Enter Emdep Reference:';
+                break;
+            case 'fenmmital':
+                searchHeading.textContent = 'Search by Fenmmital Reference';
+                searchLabel.textContent = 'Enter Fenmmital Reference:';
+                break;
+            case 'ingun':
+                searchHeading.textContent = 'Search by Ingun Reference';
+                searchLabel.textContent = 'Enter Ingun Reference:';
+                break;
+            case 'ptr':
+                searchHeading.textContent = 'Search by PTR Reference';
+                searchLabel.textContent = 'Enter PTR Reference:';
+                break;
+        }
+    }
+
+    // Autocomplete functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const suggestionsList = document.getElementById('suggestionsList');
+        const searchType = document.getElementById('searchType');
+        
+        let typingTimer;
+        
+        // Input event handler - fetch suggestions as user types
+        searchInput.addEventListener('input', function() {
+            clearTimeout(typingTimer);
+            const searchTerm = this.value.trim();
+            
+            if (searchTerm.length < 1) {
+                suggestionsList.classList.add('d-none');
+                return;
+            }
+            
+            // Debounce to prevent too many requests
+            typingTimer = setTimeout(() => {
+                fetch(`/apn_search_suggestions?search_type=${searchType.value}&term=${encodeURIComponent(searchTerm)}`)
+                    .then(response => response.json())
+                    .then(suggestions => {
+                        suggestionsList.innerHTML = '';
+                        
+                        if (suggestions.length > 0) {
+                            suggestions.forEach(suggestion => {
+                                const li = document.createElement('li');
+                                li.className = 'list-group-item list-group-item-action';
+                                li.textContent = suggestion.value;
+                                li.addEventListener('click', () => {
+                                    searchInput.value = suggestion.value;
+                                    suggestionsList.classList.add('d-none');
+                                });
+                                suggestionsList.appendChild(li);
+                            });
+                            suggestionsList.classList.remove('d-none');
+                        } else {
+                            suggestionsList.classList.add('d-none');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching suggestions:', error);
+                        suggestionsList.classList.add('d-none');
+                    });
+            }, 300); // 300ms delay
+        });
+        
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !suggestionsList.contains(e.target)) {
+                suggestionsList.classList.add('d-none');
+            }
+        });
+        
+        // Handle keyboard navigation within suggestions
+        searchInput.addEventListener('keydown', function(e) {
+            // If the dropdown is not visible, return
+            if (suggestionsList.classList.contains('d-none')) {
+                return;
+            }
+            
+            const suggestions = suggestionsList.querySelectorAll('li');
+            const activeItem = suggestionsList.querySelector('.active');
+            let activeIndex = -1;
+            
+            if (activeItem) {
+                for (let i = 0; i < suggestions.length; i++) {
+                    if (suggestions[i] === activeItem) {
+                        activeIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            // Arrow down
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (activeIndex < suggestions.length - 1) {
+                    if (activeItem) {
+                        activeItem.classList.remove('active');
+                    }
+                    suggestions[activeIndex + 1].classList.add('active');
+                    suggestions[activeIndex + 1].scrollIntoView({ block: 'nearest' });
+                }
+            }
+            // Arrow up
+            else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (activeIndex > 0) {
+                    if (activeItem) {
+                        activeItem.classList.remove('active');
+                    }
+                    suggestions[activeIndex - 1].classList.add('active');
+                    suggestions[activeIndex - 1].scrollIntoView({ block: 'nearest' });
+                }
+            }
+            // Enter key
+            else if (e.key === 'Enter') {
+                if (activeItem) {
+                    e.preventDefault();
+                    searchInput.value = activeItem.textContent;
+                    suggestionsList.classList.add('d-none');
+                }
+            }
+            // Escape key
+            else if (e.key === 'Escape') {
+                suggestionsList.classList.add('d-none');
+            }
+        });
+    });
+</script>
 {% endblock %} 

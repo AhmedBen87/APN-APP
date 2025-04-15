@@ -101,10 +101,13 @@
 
 .suggestions-list .list-group-item {
     cursor: pointer;
+    color: var(--bs-dark);
+    background-color: var(--bs-light);
 }
 
 .suggestions-list .list-group-item:hover {
     background-color: #f8f9fa;
+    color: var(--bs-dark);
 }
 
 /* APTIV Logo styling */
@@ -252,6 +255,12 @@ body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
+/* Background color overrides */
+.bg-secondary {
+    --bs-bg-opacity: 1;
+    background-color: rgb(157 166 187 / 17%) !important;
+}
+
 .navbar {
     background-color: var(--bs-primary) !important;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -307,6 +316,13 @@ body {
     padding: 0.5rem 1rem !important;
     margin-bottom: 0.5rem !important;
     font-size: 0.9rem !important;
+}
+
+.alert-info {
+    --bs-alert-color: #f8f9fa;
+    --bs-alert-bg: rgb(124 157 184 / 48%);
+    --bs-alert-border-color: rgb(165 212 221 / 49%);
+    --bs-alert-link-color: rgb(21 121 141);
 }
 
 .alert i {
@@ -532,4 +548,54 @@ body {
 .btn {
     padding: 0.375rem 0.75rem;
     font-size: 0.9rem;
+}
+
+/* Custom Bootstrap Alert Overrides */
+.alert-info {
+    --bs-alert-color: #f8f9fa;
+    --bs-alert-bg: #3c445c;
+    --bs-alert-border-color: rgb(165 212 221 / 0%);
+    --bs-alert-link-color: rgb(21 121 141);
+}
+
+/* APN search button styling */
+.btn-outline-primary {
+    color: #2c3e50;
+    border-color: #2c3e50;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-primary:hover {
+    background-color: rgba(44, 62, 80, 0.1);
+    color: #2c3e50;
+    border-color: #2c3e50;
+}
+
+.btn-outline-primary.active {
+    background-color: #2c3e50 !important;
+    color: white !important;
+    border-color: #2c3e50 !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Search form button group styling */
+#searchForm .btn-group {
+    width: 100%;
+}
+
+#searchForm .btn-group .btn {
+    flex: 1;
+    text-align: center;
+}
+
+.search-btn {
+    background-color: #2c3e50 !important;
+    border-color: #2c3e50 !important;
+    padding: 0.5rem 2rem !important;
+}
+
+.search-btn:hover {
+    background-color: #1e2b38 !important;
+    border-color: #1e2b38 !important;
 }

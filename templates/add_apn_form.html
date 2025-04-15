@@ -1,0 +1,108 @@
+{% extends 'layout.html' %}
+
+{% block title %}Add New APN{% endblock %}
+
+{% block content %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-success text-white">
+        <h2 class="mb-0">Add New APTIV Part Number (APN)</h2>
+    </div>
+    <div class="card-body">
+        {# Display flashed messages #}
+        {% include '_flashes.html' %}
+        
+        {# Pass form_data back on validation errors to repopulate fields #}
+        {% set fd = form_data or {} %}
+        
+        <form method="POST" action="{{ url_for('add_apn_form') }}" enctype="multipart/form-data">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="dpn" class="form-label">APN <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="dpn" name="dpn" value="{{ fd.get('dpn', '') }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="type" class="form-label">Type <span class="text-danger">*</span></label>
+                    <select class="form-select" id="type" name="type" required>
+                        <option value="" {% if not fd.get('type') %}selected{% endif %} disabled>-- Select Type --</option>
+                        <option value="PIN" {% if fd.get('type') == 'PIN' %}selected{% endif %}>PIN</option>
+                        <option value="MICRO" {% if fd.get('type') == 'MICRO' %}selected{% endif %}>MICRO</option>
+                        <option value="TIGE" {% if fd.get('type') == 'TIGE' %}selected{% endif %}>TIGE</option>
+                        <option value="RESSORT" {% if fd.get('type') == 'RESSORT' %}selected{% endif %}>RESSORT</option>
+                    </select>
+                </div>
+                <div class="col-md-12">
+                    <label for="image" class="form-label">Image File</label>
+                    <input type="file" class="form-control" id="image" name="image" accept="image/png, image/jpeg, image/jpg">
+                    <small class="text-muted">Upload an image (PNG, JPG). If provided, this will be saved to the appropriate static folder.</small>
+                </div>
+                <div class="col-md-6">
+                    <label for="ref_emdep" class="form-label">Ref Emdep</label>
+                    <input type="text" class="form-control" id="ref_emdep" name="ref_emdep" value="{{ fd.get('ref_emdep', '') }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="ref_ingun" class="form-label">Ref Ingun</label>
+                    <input type="text" class="form-control" id="ref_ingun" name="ref_ingun" value="{{ fd.get('ref_ingun', '') }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="ref_fenmmital" class="form-label">Ref Fenmmital</label>
+                    <input type="text" class="form-control" id="ref_fenmmital" name="ref_fenmmital" value="{{ fd.get('ref_fenmmital', '') }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="ref_ptr" class="form-label">Ref Ptr</label>
+                    <input type="text" class="form-control" id="ref_ptr" name="ref_ptr" value="{{ fd.get('ref_ptr', '') }}">
+                </div>
+                <div class="col-md-12">
+                    <label for="location" class="form-label">Location</label>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">Cabinet</span>
+                                <select class="form-select" id="location_cabinet" name="location_cabinet">
+                                    <option value="">-- Select Cabinet --</option>
+                                    {% for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
+                                        <option value="{{ letter }}" {% if fd.get('location_cabinet') == letter %}selected{% endif %}>{{ letter }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">Drawer</span>
+                                <select class="form-select" id="location_drawer" name="location_drawer">
+                                    <option value="">-- Select Drawer --</option>
+                                    {% for num in range(1, 11) %}
+                                        {% set drawer_id = '%02d' % num %}
+                                        <option value="{{ drawer_id }}" {% if fd.get('location_drawer') == drawer_id %}selected{% endif %}>{{ drawer_id }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <small class="text-muted">Format: ARMOIRE X-YY (cabinet-drawer)</small>
+                </div>
+                <div class="col-md-12">
+                    <label for="multi_apn" class="form-label">Multi APN Ref</label>
+                    <input type="text" class="form-control" id="multi_apn" name="multi_apn" value="{{ fd.get('multi_apn', '') }}">
+                </div>
+            </div>
+            <hr class="my-4">
+            <button class="btn btn-success btn-lg" type="submit">Add APN</button>
+            <a href="{{ url_for('apn_database') }}" class="btn btn-secondary btn-lg">Cancel</a>
+        </form>
+    </div>
+</div>
+
+{# Optional: Add a partial template for flashes if not already in layout #}
+{# Create templates/_flashes.html with: #}
+{# {% with messages = get_flashed_messages(with_categories=true) %} #}
+{#   {% if messages %} #}
+{#     {% for category, message in messages %} #}
+{#       <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert"> #}
+{#         {{ message }} #}
+{#         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button> #}
+{#       </div> #}
+{#     {% endfor %} #}
+{#   {% endif %} #}
+{# {% endwith %} #}
+
+{% endblock %} 

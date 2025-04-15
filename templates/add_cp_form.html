@@ -1,0 +1,536 @@
+{% extends 'layout.html' %}
+
+{% block title %}Add New CP{% endblock %}
+
+{% block content %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h2 class="mb-0">Add New Counterpart (CP)</h2>
+    </div>
+    <div class="card-body">
+        {% include '_flashes.html' %}
+        
+        {% set fd = form_data or {} %}
+        
+        <form method="POST" action="{{ url_for('add_cp_form') }}" enctype="multipart/form-data" id="addCpForm">
+            
+            <h4>Counterpart Details</h4>
+            <div class="row g-3 mb-4">
+                {# --- Customer Selection --- #}
+                <div class="col-md-4">
+                    <label for="customer_select" class="form-label">Customer <span class="text-danger">*</span></label>
+                    <select class="form-select" id="customer_select" name="customer_select" required>
+                        <option value="" {% if not fd.get('customer_select') %}selected{% endif %} disabled>-- Select Customer --</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer }}" {% if fd.get('customer_select') == customer %}selected{% endif %}>{{ customer }}</option>
+                        {% endfor %}
+                        <option value="__NEW__" {% if fd.get('customer_select') == '__NEW__' %}selected{% endif %}>-- Add New Customer --</option>
+                    </select>
+                </div>
+                {# Hidden input for New Customer Name #}
+                <div class="col-md-4" id="new_customer_group" style="display: none;">
+                    <label for="new_customer_name" class="form-label">New Customer Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="new_customer_name" name="new_customer_name" value="{{ fd.get('new_customer_name', '') }}">
+                </div>
+                 {# Hidden input for New Customer Logo #}
+                <div class="col-md-4" id="new_customer_logo_group" style="display: none;">
+                    <label for="new_customer_logo" class="form-label">New Customer Logo</label>
+                    <input type="file" class="form-control" id="new_customer_logo" name="new_customer_logo" accept="image/png, image/jpeg, image/jpg">
+                     <small class="text-muted">Optional. Will be named after the customer.</small>
+                </div>
+                
+                {# --- Carline Selection --- #}
+                <div class="col-md-4">
+                    <label for="carline_select" class="form-label">Carline <span class="text-danger">*</span></label>
+                    <select class="form-select" id="carline_select" name="carline_select" required disabled>
+                        <option value="" selected disabled>-- Select Customer First --</option>
+                        {# Options will be populated by JS #}
+                        {# We add the NEW option here for simplicity, JS will manage it #}
+                        <option value="__NEW__">-- Add New Carline --</option> 
+                    </select>
+                </div>
+                {# Hidden input for New Carline Name #}
+                <div class="col-md-4" id="new_carline_group" style="display: none;">
+                    <label for="new_carline_name" class="form-label">New Carline Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="new_carline_name" name="new_carline_name" value="{{ fd.get('new_carline_name', '') }}">
+                </div>
+
+                {# --- Other CP Details --- #}
+                <div class="col-md-4">
+                    <label for="cp_name" class="form-label">CP Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="cp_name" name="cp_name" value="{{ fd.get('cp_name', '') }}" required>
+                </div>
+                 <div class="col-md-12">
+                    <label for="ot_ref" class="form-label">OT Reference</label>
+                    <textarea class="form-control" id="ot_ref" name="ot_ref" rows="2">{{ fd.get('ot_ref', '') }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">CP Type <span class="text-danger">*</span></label>
+                    <div>
+                         <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="cp_type" id="cp_type_main" value="main" {% if fd.get('cp_type', 'main') == 'main' %}checked{% endif %} required>
+                            <label class="form-check-label" for="cp_type_main">Main (static/cp_images/)</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="cp_type" id="cp_type_sub51" value="sub51" {% if fd.get('cp_type') == 'sub51' %}checked{% endif %} required>
+                            <label class="form-check-label" for="cp_type_sub51">SUB51 (static/cp_sub51_images/)</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="image" class="form-label">CP Image File</label>
+                    <input type="file" class="form-control" id="image" name="image" accept="image/png, image/jpeg, image/jpg">
+                    <small class="text-muted">Upload an image (PNG, JPG). Saved based on CP Type selection.</small>
+                </div>
+            </div>
+
+            <h4>Component APNs</h4>
+            <p class="text-muted"><small>Enter the APN and its quantity. If an APN is not found, you can add it directly.</small></p>
+            
+            {% set apn_fields = ['PIN1', 'PIN2', 'PIN3', 'PIN4', 'TIGE_1', 'TIGE_2', 'RESSORT_1', 'RESSORT_2'] %}
+            {% for field in apn_fields %}
+            {% set qty_key = 'Qte_' + field if field != 'PIN4' else 'QTE_4' %}
+            <div class="row g-2 mb-2 align-items-center border-top pt-2">
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">{{ field.replace('_', ' ') }}:</label> 
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control form-control-sm apn-dpn-input" id="{{ field }}_DPN" name="{{ field }}_DPN" value="{{ fd.get(field + '_DPN', '') }}" placeholder="Enter APN" data-field-name="{{ field }}">
+                        {# Placeholder for status icon/button #}
+                        <span class="input-group-text apn-status" id="status_{{ field }}"></span>
+                    </div>
+                    <div id="error_{{ field }}" class="text-danger small mt-1"></div>
+                </div>
+                {# Only show Quantity input if not a RESSORT field #}
+                {% if 'RESSORT' not in field %}
+                <div class="col-md-1">
+                    <label for="{{ qty_key }}" class="form-label visually-hidden">Quantity for {{ field }}</label>
+                </div>
+                <div class="col-md-3">
+                    <input type="number" class="form-control form-control-sm" id="{{ qty_key }}" name="{{ qty_key }}" value="{{ fd.get(qty_key, '') }}" placeholder="Qty" min="0">
+                </div>
+                {% else %}
+                <div class="col-md-4">
+                    <small class="text-muted">(No Quantity)</small>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            
+            <hr class="my-4">
+            <button class="btn btn-warning btn-lg" type="submit">Add CP</button>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<!-- Add APN Modal -->
+<div class="modal fade" id="addApnModal" tabindex="-1" aria-labelledby="addApnModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="addApnModalLabel">Add New APN</h5>
+      </div>
+      <div class="modal-body bg-dark text-light">
+        <form id="modalAddApnForm" enctype="multipart/form-data"> 
+          {# Reuse APN form structure - adjust IDs/names if needed to avoid conflicts #}
+          <div id="modal_error_general" class="alert alert-danger d-none"></div>
+          <input type="hidden" id="modal_apn_target_field" value=""> {# Store which CP field triggered this #}
+
+          <div class="row g-3">
+              <div class="col-md-6">
+                  <label for="modal_dpn" class="form-label">APN <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="modal_dpn" name="dpn" required readonly> {# Readonly initially #}
+                  <div id="modal_error_dpn" class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                  <label for="modal_type" class="form-label">Type <span class="text-danger">*</span></label>
+                  <select class="form-select" id="modal_type" name="type" required>
+                        <option value="" selected disabled>-- Select Type --</option>
+                        <option value="PIN">PIN</option>
+                        <option value="MICRO">MICRO</option>
+                        <option value="TIGE">TIGE</option>
+                        <option value="RESSORT">RESSORT</option>
+                  </select>
+                   <div id="modal_error_type" class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-12">
+                  <label for="modal_image" class="form-label">Image File</label>
+                  <input type="file" class="form-control" id="modal_image" name="image" accept="image/png, image/jpeg, image/jpg">
+                  <div id="modal_error_image" class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                  <label for="modal_ref_emdep" class="form-label">Ref Emdep</label>
+                  <input type="text" class="form-control" id="modal_ref_emdep" name="ref_emdep">
+              </div>
+              <div class="col-md-6">
+                  <label for="modal_ref_ingun" class="form-label">Ref Ingun</label>
+                  <input type="text" class="form-control" id="modal_ref_ingun" name="ref_ingun">
+              </div>
+              <div class="col-md-6">
+                  <label for="modal_ref_fenmmital" class="form-label">Ref Fenmmital</label>
+                  <input type="text" class="form-control" id="modal_ref_fenmmital" name="ref_fenmmital">
+              </div>
+              <div class="col-md-6">
+                  <label for="modal_ref_ptr" class="form-label">Ref Ptr</label>
+                  <input type="text" class="form-control" id="modal_ref_ptr" name="ref_ptr">
+              </div>
+              <div class="col-md-12">
+                  <label for="modal_multi_apn" class="form-label">Multi APN Ref</label>
+                  <input type="text" class="form-control" id="modal_multi_apn" name="multi_apn">
+              </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="submitModalApnBtn">Add APN</button>
+      </div>
+    </div>
+  </div>
+</div>
+{# End Add APN Modal #}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const customerSelect = document.getElementById('customer_select');
+        const newCustomerGroup = document.getElementById('new_customer_group');
+        const newCustomerInput = document.getElementById('new_customer_name');
+        const newCustomerLogoGroup = document.getElementById('new_customer_logo_group');
+        const newCustomerLogoInput = document.getElementById('new_customer_logo');
+        
+        const carlineSelect = document.getElementById('carline_select');
+        const newCarlineGroup = document.getElementById('new_carline_group');
+        const newCarlineInput = document.getElementById('new_carline_name');
+
+        // --- Initial state based on form data (if errors occurred) ---
+        function setInitialState() {
+             // Restore state for Customer
+            if (customerSelect.value === '__NEW__') {
+                newCustomerGroup.style.display = 'block';
+                newCustomerInput.required = true;
+                newCustomerLogoGroup.style.display = 'block';
+                newCustomerLogoInput.required = false; // Logo is optional
+                carlineSelect.innerHTML = '<option value="" selected disabled>-- Enter New Customer First --</option>';
+                carlineSelect.disabled = true;
+                newCarlineGroup.style.display = 'block';
+                newCarlineInput.required = true;
+                carlineSelect.required = false; // Original select not required if adding new customer+carline
+            } else if (customerSelect.value) {
+                 // If an existing customer was selected, fetch its carlines
+                fetchAndPopulateCarlines(customerSelect.value, "{{ form_data.get('carline_select', '') }}");
+                // Also handle initial state for carline based on possibly restored value
+                if ("{{ form_data.get('carline_select', '') }}" === '__NEW__') {
+                    newCarlineGroup.style.display = 'block';
+                    newCarlineInput.required = true;
+                    carlineSelect.required = false;
+                } else {
+                     newCarlineGroup.style.display = 'none';
+                     newCarlineInput.required = false;
+                     carlineSelect.required = true;
+                }
+            } else {
+                 // Default initial state (no customer selected)
+                 carlineSelect.disabled = true;
+                 carlineSelect.required = true; // Required once customer chosen
+            }
+        }
+        
+        setInitialState(); // Set state on page load
+
+        // --- Customer Dropdown Change Handler ---
+        customerSelect.addEventListener('change', function() {
+            const selectedCustomer = this.value;
+            
+            // Reset carline state
+            carlineSelect.innerHTML = '<option value="" selected disabled>-- Loading Carlines... --</option>';
+            carlineSelect.disabled = true;
+            newCarlineGroup.style.display = 'none';
+            newCarlineInput.required = false;
+            newCarlineInput.value = '';
+            carlineSelect.required = true; // Generally required unless new customer is picked
+
+            if (selectedCustomer === '__NEW__') {
+                // Show new customer fields
+                newCustomerGroup.style.display = 'block';
+                newCustomerInput.required = true;
+                newCustomerInput.focus();
+                newCustomerLogoGroup.style.display = 'block';
+                newCustomerLogoInput.required = false;
+                // Show new carline field directly
+                carlineSelect.innerHTML = '<option value="" selected disabled>-- Enter New Customer First --</option>';
+                newCarlineGroup.style.display = 'block';
+                newCarlineInput.required = true;
+                carlineSelect.required = false; // Existing select not needed
+            } else if (selectedCustomer) {
+                // Hide new customer fields
+                newCustomerGroup.style.display = 'none';
+                newCustomerInput.required = false;
+                newCustomerInput.value = '';
+                newCustomerLogoGroup.style.display = 'none';
+                newCustomerLogoInput.value = '';
+                newCustomerLogoInput.required = false;
+                // Fetch carlines for existing customer
+                fetchAndPopulateCarlines(selectedCustomer);
+            } else {
+                // No customer selected yet
+                newCustomerGroup.style.display = 'none';
+                newCustomerInput.required = false;
+                 newCustomerLogoGroup.style.display = 'none';
+                newCustomerLogoInput.required = false;
+                carlineSelect.innerHTML = '<option value="" selected disabled>-- Select Customer First --</option>';
+            }
+        });
+
+        // --- Carline Dropdown Change Handler ---
+        carlineSelect.addEventListener('change', function() {
+            if (this.value === '__NEW__') {
+                newCarlineGroup.style.display = 'block';
+                newCarlineInput.required = true;
+                newCarlineInput.focus();
+                carlineSelect.required = false; // Original select not required if adding new
+            } else {
+                newCarlineGroup.style.display = 'none';
+                newCarlineInput.required = false;
+                newCarlineInput.value = '';
+                carlineSelect.required = true; // Original select is required if choosing existing
+            }
+        });
+
+        // --- Function to fetch and populate carlines ---
+        function fetchAndPopulateCarlines(customer, selectedCarlineValue = '') {
+            fetch(`/get_carlines/${encodeURIComponent(customer)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(carlines => {
+                    carlineSelect.innerHTML = ''; // Clear existing options
+                    
+                    // Add default prompt
+                    let defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = '-- Select Carline --';
+                    defaultOption.disabled = true;
+                    defaultOption.selected = !selectedCarlineValue || selectedCarlineValue === '__NEW__'; // Select if no specific value or adding new
+                    carlineSelect.appendChild(defaultOption);
+                    
+                    // Add fetched carlines
+                    carlines.forEach(carline => {
+                        let option = document.createElement('option');
+                        option.value = carline;
+                        option.textContent = carline;
+                        if (carline === selectedCarlineValue) { // Restore selection if needed
+                            option.selected = true;
+                        }
+                        carlineSelect.appendChild(option);
+                    });
+                    
+                    // Add the "Add New" option
+                    let newOption = document.createElement('option');
+                    newOption.value = '__NEW__';
+                    newOption.textContent = '-- Add New Carline --';
+                     if (selectedCarlineValue === '__NEW__') { // Restore selection if needed
+                        newOption.selected = true;
+                     }
+                    carlineSelect.appendChild(newOption);
+                    
+                    carlineSelect.disabled = false;
+                    carlineSelect.required = (selectedCarlineValue !== '__NEW__'); // Set required based on selection
+                })
+                .catch(error => {
+                    console.error('Error fetching carlines:', error);
+                    carlineSelect.innerHTML = '<option value="" selected disabled>-- Error loading carlines --</option>';
+                    carlineSelect.disabled = true;
+                });
+        }
+        
+        // Prevent submission if hidden required fields are empty (basic client-side check)
+        const form = document.getElementById('addCpForm');
+        form.addEventListener('submit', function(event) {
+            if (customerSelect.value === '__NEW__' && !newCustomerInput.value.trim()) {
+                alert('Please enter a name for the new customer.');
+                event.preventDefault(); // Stop submission
+                newCustomerInput.focus();
+                return;
+            }
+            // Only check new carline if customer IS NOT new, OR if customer IS new and carline select ended up somehow enabled (shouldn't happen with current logic)
+            // Correct logic: Check new carline if carline_select is '__NEW__'
+            if (carlineSelect.value === '__NEW__' && !newCarlineInput.value.trim()) {
+                 alert('Please enter a name for the new carline.');
+                 event.preventDefault(); // Stop submission
+                 newCarlineInput.focus();
+                 return;
+            }
+             // Check if an existing customer selected but no carline selected (and not adding new)
+            if (customerSelect.value && customerSelect.value !== '__NEW__') {
+                if (!carlineSelect.value || (carlineSelect.value === '__NEW__' && !newCarlineInput.value.trim())) {
+                     if (carlineSelect.value === '__NEW__'){
+                         alert('Please enter a name for the new carline.');
+                         newCarlineInput.focus();
+                     } else {
+                         alert('Please select a carline or choose to add a new one.');
+                         carlineSelect.focus();
+                     }
+                     event.preventDefault(); // Stop submission
+                     return;
+                }
+            }
+        });
+
+    });
+</script>
+{# --- New JS for Inline APN Add --- #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const apnInputs = document.querySelectorAll('.apn-dpn-input');
+    const addApnModalElement = document.getElementById('addApnModal');
+    const addApnModal = new bootstrap.Modal(addApnModalElement);
+    const modalForm = document.getElementById('modalAddApnForm');
+    const modalSubmitBtn = document.getElementById('submitModalApnBtn');
+    const modalDpnInput = document.getElementById('modal_dpn');
+    const modalTargetFieldInput = document.getElementById('modal_apn_target_field');
+
+    // Function to clear modal errors
+    function clearModalErrors() {
+        modalForm.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        modalForm.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+        document.getElementById('modal_error_general').classList.add('d-none');
+        document.getElementById('modal_error_general').textContent = '';
+    }
+
+    // Function to display modal errors
+    function displayModalErrors(errors) {
+        clearModalErrors();
+        for (const field in errors) {
+            const inputElement = modalForm.querySelector(`[name="${field}"]`);
+            const errorElement = document.getElementById(`modal_error_${field}`);
+            if (inputElement) inputElement.classList.add('is-invalid');
+            if (errorElement) errorElement.textContent = errors[field];
+        }
+        if (errors.general) {
+             document.getElementById('modal_error_general').textContent = errors.general;
+             document.getElementById('modal_error_general').classList.remove('d-none');
+        }
+    }
+
+    // Function to update status indicator
+    function updateApnStatus(fieldName, status, dpn = null) {
+        const statusEl = document.getElementById(`status_${fieldName}`);
+        const errorEl = document.getElementById(`error_${fieldName}`);
+        statusEl.innerHTML = ''; // Clear previous status
+        errorEl.textContent = ''; // Clear previous error
+
+        if (status === 'checking') {
+            statusEl.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        } else if (status === 'exists') {
+            statusEl.innerHTML = '<i class="fas fa-check text-success"></i>';
+        } else if (status === 'not_exists') {
+            statusEl.innerHTML = `<button type="button" class="btn btn-sm btn-success open-add-apn-modal" data-dpn="${dpn}" data-target-field="${fieldName}"><i class="fas fa-plus"></i> Add</button>`;
+        } else if (status === 'error') {
+            statusEl.innerHTML = '<i class="fas fa-exclamation-triangle text-danger"></i>';
+            errorEl.textContent = 'Error checking APN.';
+        }
+    }
+
+    // Add blur event listener to APN DPN inputs
+    apnInputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            const dpn = this.value.trim();
+            const fieldName = this.dataset.fieldName;
+            const statusEl = document.getElementById(`status_${fieldName}`);
+            
+            if (!dpn) {
+                statusEl.innerHTML = ''; // Clear status if input is empty
+                document.getElementById(`error_${fieldName}`).textContent = '';
+                return;
+            }
+
+            updateApnStatus(fieldName, 'checking');
+
+            fetch(`/check_apn/${encodeURIComponent(dpn)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.exists) {
+                        updateApnStatus(fieldName, 'exists');
+                    } else {
+                        updateApnStatus(fieldName, 'not_exists', dpn);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking APN:', error);
+                    updateApnStatus(fieldName, 'error');
+                });
+        });
+    });
+
+    // Event delegation for dynamically added 'Add' buttons
+    document.querySelector('.card-body').addEventListener('click', function(event) {
+        if (event.target && event.target.classList.contains('open-add-apn-modal')) {
+            const dpnToAdd = event.target.dataset.dpn;
+            const targetField = event.target.dataset.targetField;
+            
+            // Prepare and show the modal
+            clearModalErrors();
+            modalForm.reset(); // Reset form fields
+            modalDpnInput.value = dpnToAdd; // Pre-fill DPN
+            modalTargetFieldInput.value = targetField; // Store which field needs update
+            addApnModal.show();
+        }
+    });
+
+    // Handle Modal Form Submission via AJAX
+    modalSubmitBtn.addEventListener('click', function() {
+        const formData = new FormData(modalForm);
+        const submitButton = this;
+        
+        // Disable button, show spinner (optional)
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+        clearModalErrors();
+
+        fetch('/ajax/add_apn', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+        .then(({ status, body }) => {
+            if (status === 200 && body.success) {
+                // Success!
+                addApnModal.hide();
+                // Optionally update the original input field on the CP form
+                const targetFieldName = modalTargetFieldInput.value;
+                 const originalInput = document.getElementById(`${targetFieldName}_DPN`);
+                 if(originalInput) {
+                    originalInput.value = body.new_apn.dpn; // Ensure DPN is correct case etc.
+                    // Simulate blur to re-trigger check and show success icon
+                    originalInput.dispatchEvent(new Event('blur')); 
+                 }
+                 // Optionally show a non-modal success message (e.g., using Toast)
+                 alert(body.message); // Simple alert for now
+            } else {
+                // Show errors in the modal
+                displayModalErrors(body.errors || { general: 'An unexpected error occurred.' });
+            }
+        })
+        .catch(error => {
+            console.error('Error submitting modal form:', error);
+            displayModalErrors({ general: 'Network error or server issue.' });
+        })
+        .finally(() => {
+            // Re-enable button
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Add APN';
+        });
+    });
+
+});
+</script>
+{% endblock %} 

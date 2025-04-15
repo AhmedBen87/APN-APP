@@ -30,8 +30,13 @@
 
         {% for cp in cps %}
         <div class="card mb-4">
-            <div class="card-header bg-dark text-white">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">CP: {{ cp.CP }}</h4>
+                {% if session.logged_in %}
+                <a href="{{ url_for('edit_cp', cp_id=cp.CP_ID) }}" class="btn btn-sm btn-info">
+                    <i class="fas fa-edit me-1"></i> Edit
+                </a>
+                {% endif %}
             </div>
             <div class="card-body">
                 <div class="row">
@@ -107,7 +112,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div class="card card-body bg-dark">
+                                        <div class="card card-body border-secondary" style="background-color: #2b3245; color: white;">
                                             <div class="row">
                                                 <div class="col-md-6">
                                                     <dl class="row mb-0">
@@ -123,16 +128,41 @@
                                                         <dt class="col-sm-4">Ref Ptr:</dt>
                                                         <dd class="col-sm-8">{{ apn.ref_ptr or 'N/A' }}</dd>
                                                     </dl>
+                                                    <button type="button" class="btn btn-sm scan-apn-btn mt-2" 
+                                                            style="background-color: #2e4aa0; color: white; border: 1px solid white;"
+                                                            data-bs-toggle="modal" data-bs-target="#scanApnModal"
+                                                            data-dpn="{{ apn.dpn }}"
+                                                            data-type="{{ apn.type }}"
+                                                            data-ref-emdep="{{ apn.ref_emdep or 'N/A' }}"
+                                                            data-ref-ingun="{{ apn.ref_ingun or 'N/A' }}"
+                                                            data-ref-fenmmital="{{ apn.ref_fenmmital or 'N/A' }}"
+                                                            data-ref-ptr="{{ apn.ref_ptr or 'N/A' }}"
+                                                            data-image-url="{% if apn.image %}{% if '/pin/' in apn.image %}{{ url_for('serve_apn_pin_image', filename=apn.image.split('/')[-1]) }}{% else %}{{ url_for('serve_apn_image', filename=apn.image.split('/')[-1]) }}{% endif %}{% else %}{# Provide a placeholder or leave empty #}{% endif %}">
+                                                        <i class="fas fa-barcode me-1"></i> Scan
+                                                    </button>
+                                                    
+                                                    {% if apn.location %}
+                                                    <button type="button" class="btn btn-sm locate-apn-btn mt-2 ms-2" 
+                                                            style="background-color: #38762b; color: white; border: 1px solid white;"
+                                                            data-bs-toggle="modal" data-bs-target="#locateApnModal"
+                                                            data-apn-id="{{ apn.id }}"
+                                                            data-dpn="{{ apn.dpn }}"
+                                                            data-location="{{ apn.location }}">
+                                                        <i class="fas fa-map-marker-alt me-1"></i> Locate
+                                                    </button>
+                                                    {% endif %}
                                                 </div>
-                                                <div class="col-md-6 text-center">
+                                                <div class="col-md-6 text-center align-self-center">
                                                     {% if apn.image %}
+                                                        {% set apn_img_url = '' %}
                                                         {% if '/pin/' in apn.image %}
-                                                        <img src="{{ url_for('serve_apn_pin_image', filename=apn.image.split('/')[-1]) }}" alt="APN Image" class="img-fluid" style="max-height: 150px;">
+                                                            {% set apn_img_url = url_for('serve_apn_pin_image', filename=apn.image.split('/')[-1]) %}
                                                         {% else %}
-                                                        <img src="{{ url_for('serve_apn_image', filename=apn.image.split('/')[-1]) }}" alt="APN Image" class="img-fluid" style="max-height: 150px;">
+                                                            {% set apn_img_url = url_for('serve_apn_image', filename=apn.image.split('/')[-1]) %}
                                                         {% endif %}
+                                                        <img src="{{ apn_img_url }}" alt="APN Image" class="img-fluid rounded" style="max-height: 150px;">
                                                     {% else %}
-                                                        <div class="alert alert-secondary">No image available</div>
+                                                        <div class="alert alert-secondary p-2">No image available</div>
                                                     {% endif %}
                                                 </div>
                                             </div>
@@ -156,4 +186,435 @@
     </div>
     {% endif %}
 </div>
+
+<!-- APN Scan Modal -->
+<div class="modal fade" id="scanApnModal" tabindex="-1" aria-labelledby="scanApnModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content bg-dark">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="scanApnModalLabel">Scan APN Verification</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4 bg-dark text-white">
+        <div class="row g-4">
+          <div class="col-md-4">
+            <h4 class="text-white">APN Details</h4>
+            <dl class="row text-white">
+              <dt class="col-sm-5">DPN:</dt>
+              <dd class="col-sm-7"><strong id="modal-scan-dpn"></strong></dd>
+
+              <dt class="col-sm-5">Type:</dt>
+              <dd class="col-sm-7"><span id="modal-scan-type"></span></dd>
+
+              <dt class="col-sm-5">Ref Emdep:</dt>
+              <dd class="col-sm-7"><span id="modal-scan-ref-emdep"></span></dd>
+
+              <dt class="col-sm-5">Ref Ingun:</dt>
+              <dd class="col-sm-7"><span id="modal-scan-ref-ingun"></span></dd>
+
+              <dt class="col-sm-5">Ref Fenmmital:</dt>
+              <dd class="col-sm-7"><span id="modal-scan-ref-fenmmital"></span></dd>
+
+              <dt class="col-sm-5">Ref Ptr:</dt>
+              <dd class="col-sm-7"><span id="modal-scan-ref-ptr"></span></dd>
+            </dl>
+          </div>
+
+          <div class="col-md-4 d-flex flex-column justify-content-center align-items-center">
+             <h4 class="text-white">Scan Input</h4>
+             <div class="input-group mb-3">
+                <input type="text" class="form-control form-control-lg" id="modal-scan-input" placeholder="Scan or type APN DPN..." aria-label="Scan APN DPN" aria-describedby="button-scan-submit">
+                <button class="btn btn-primary" type="button" id="button-scan-submit"><i class="fas fa-search"></i></button>
+             </div>
+             <div id="modal-scan-feedback" class="alert mt-3 w-100 text-center" role="alert" style="min-height: 50px; display: none;">
+                {# Feedback message appears here #}
+             </div>
+          </div>
+
+          <div class="col-md-4 text-center">
+             <h4 class="text-white">APN Image</h4>
+             <img id="modal-scan-image" src="" alt="APN Image" class="img-fluid rounded border" style="max-height: 300px;">
+             <p id="modal-scan-no-image" class="text-muted mt-2" style="display: none;">No image available.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End APN Scan Modal -->
+
+<!-- APN Location Modal -->
+<div class="modal fade" id="locateApnModal" tabindex="-1" aria-labelledby="locateApnModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content bg-dark">
+      <div class="modal-header bg-dark text-white py-2">
+        <h6 class="modal-title" id="locateApnModalLabel">APN Location</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-3 bg-dark text-white">
+        <div class="text-center">
+          <h6 class="mb-2"><span id="modal-locate-dpn"></span></h6>
+          <div id="cabinet-container" class="mx-auto mb-2">
+            <!-- Smaller Cabinet SVG -->
+            <svg width="200" height="350" viewBox="0 0 200 350" xmlns="http://www.w3.org/2000/svg" id="cabinet-svg">
+                <!-- Cabinet body -->
+                <rect x="15" y="15" width="170" height="320" rx="5" fill="#555555" stroke="#333333" stroke-width="2"/>
+                
+                <!-- Cabinet top -->
+                <rect x="10" y="10" width="180" height="15" rx="3" fill="#666666" stroke="#333333" stroke-width="2"/>
+                
+                <!-- Cabinet bottom -->
+                <rect x="10" y="325" width="180" height="15" rx="3" fill="#666666" stroke="#333333" stroke-width="2"/>
+                
+                <!-- Cabinet badge/label -->
+                <rect x="85" y="20" width="30" height="20" rx="3" fill="#888888" stroke="#444444" stroke-width="1"/>
+                <text x="100" y="35" font-family="Arial" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle" id="cabinet-label">?</text>
+                
+                <!-- Drawers will be inserted here via JS -->
+                <g id="drawers-container"></g>
+            </svg>
+          </div>
+          <h6 class="mb-2" id="armoire-label">ARMOIRE</h6>
+          <div class="alert alert-success py-2 px-3 mb-0">
+            <p class="mb-0"><i class="fas fa-map-marker-alt me-1"></i> <span id="location-text" class="fw-bold">ARMOIRE ?-??</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
+
+{% block scripts %}
+{{ super() }}
+
+{# Add CSS for flash animations #}
+<style>
+  /* Overlay flash effects */
+  @keyframes flash-overlay-green {
+    0% { opacity: 0; }
+    25% { opacity: 0.8; }
+    75% { opacity: 0.8; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes flash-overlay-red {
+    0% { opacity: 0; }
+    25% { opacity: 0.8; }
+    75% { opacity: 0.8; }
+    100% { opacity: 0; }
+  }
+  
+  /* Text animation */
+  @keyframes pulse-text {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.5); }
+    100% { transform: scale(1); }
+  }
+  
+  /* Create overlay elements */
+  .flash-success::before {
+    content: "CORRECT";
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(40, 167, 69, 0.9);
+    color: white;
+    font-size: 5rem;
+    font-weight: bold;
+    z-index: 2000;
+    animation: flash-overlay-green 2s ease-in-out, pulse-text 2s ease-in-out;
+  }
+  
+  .flash-error::before {
+    content: "WRONG";
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(220, 53, 69, 0.9);
+    color: white;
+    font-size: 5rem;
+    font-weight: bold;
+    z-index: 2000;
+    animation: flash-overlay-red 2s ease-in-out, pulse-text 2s ease-in-out;
+  }
+  
+  /* Enhance modal flash effects too */
+  .flash-success .modal-content {
+    animation: flash-green 2s ease-in-out;
+    box-shadow: 0 0 30px 15px #28a745;
+  }
+  
+  .flash-error .modal-content {
+    animation: flash-red 2s ease-in-out;
+    box-shadow: 0 0 30px 15px #dc3545;
+  }
+  
+  @keyframes flash-green {
+    0% { background-color: #212529; }
+    50% { background-color: #28a745; }
+    100% { background-color: #212529; }
+  }
+
+  @keyframes flash-red {
+    0% { background-color: #212529; }
+    50% { background-color: #dc3545; }
+    100% { background-color: #212529; }
+  }
+
+  /* Cabinet location modal styles */
+  @keyframes pulse-highlight {
+    0% {
+        filter: drop-shadow(0 0 0px rgba(255, 140, 0, 0.7));
+    }
+    50% {
+        filter: drop-shadow(0 0 10px rgba(255, 140, 0, 1));
+    }
+    100% {
+        filter: drop-shadow(0 0 0px rgba(255, 140, 0, 0.7));
+    }
+  }
+  
+  .drawer {
+      transition: transform 1.5s ease-in-out;
+  }
+  
+  #cabinet-container {
+      filter: drop-shadow(0 0 15px rgba(0, 0, 0, 0.5));
+      margin: 0 auto;
+      max-width: 300px;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const scanModalElement = document.getElementById('scanApnModal');
+    if (!scanModalElement) return; // Exit if modal not found
+
+    const modalContentElement = scanModalElement.querySelector('.modal-content'); // Get modal-content
+    const modalScanDpn = document.getElementById('modal-scan-dpn');
+    const modalScanType = document.getElementById('modal-scan-type');
+    const modalScanRefEmdep = document.getElementById('modal-scan-ref-emdep');
+    const modalScanRefIngun = document.getElementById('modal-scan-ref-ingun');
+    const modalScanRefFenmmital = document.getElementById('modal-scan-ref-fenmmital');
+    const modalScanRefPtr = document.getElementById('modal-scan-ref-ptr');
+    const modalScanImage = document.getElementById('modal-scan-image');
+    const modalScanNoImage = document.getElementById('modal-scan-no-image');
+    const modalScanInput = document.getElementById('modal-scan-input');
+    const modalScanButton = document.getElementById('button-scan-submit');
+    const modalScanFeedback = document.getElementById('modal-scan-feedback');
+
+    let correctDpn = '';
+
+    // --- Event Listener for Scan Buttons ---
+    document.querySelectorAll('.scan-apn-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const data = this.dataset;
+            correctDpn = data.dpn || ''; // Store the correct DPN
+
+            // Populate modal text fields
+            modalScanDpn.textContent = data.dpn || 'N/A';
+            modalScanType.textContent = data.type || 'N/A';
+            modalScanRefEmdep.textContent = data.refEmdep || 'N/A';
+            modalScanRefIngun.textContent = data.refIngun || 'N/A';
+            modalScanRefFenmmital.textContent = data.refFenmmital || 'N/A';
+            modalScanRefPtr.textContent = data.refPtr || 'N/A';
+
+            // Populate modal image
+            if (data.imageUrl) {
+                modalScanImage.src = data.imageUrl;
+                modalScanImage.style.display = 'block';
+                modalScanNoImage.style.display = 'none';
+            } else {
+                modalScanImage.src = '';
+                modalScanImage.style.display = 'none';
+                modalScanNoImage.style.display = 'block';
+            }
+
+            // Reset input and feedback for new scan
+            modalScanInput.value = '';
+            modalScanFeedback.textContent = '';
+            modalScanFeedback.style.display = 'none';
+            modalScanFeedback.className = 'alert mt-3 w-100 text-center'; // Reset classes
+        });
+    });
+
+    // --- Auto-focus input when modal is shown ---
+    scanModalElement.addEventListener('shown.bs.modal', function () {
+        modalScanInput.focus();
+    });
+
+    // --- Function to check the scanned input ---
+    function checkScanInput() {
+        const scannedValue = modalScanInput.value.trim();
+
+        // --- Remove previous flash effects ---
+        scanModalElement.classList.remove('flash-success', 'flash-error');
+        // Force reflow to ensure animation restarts if the same class is added again
+        void modalContentElement.offsetWidth;
+        // --- End Remove previous flash effects ---
+
+        if (!scannedValue) {
+            return;
+        }
+
+        modalScanFeedback.style.display = 'block';
+
+        // Case-insensitive comparison
+        if (scannedValue.toUpperCase() === correctDpn.toUpperCase()) {
+            modalScanFeedback.textContent = 'APN IS CORRECT';
+            modalScanFeedback.className = 'alert alert-success mt-2 w-100 text-center fw-bold';
+            // --- Add success flash effect ---
+            scanModalElement.classList.add('flash-success');
+            // --- End Add success flash effect ---
+        } else {
+            modalScanFeedback.textContent = 'WRONG APN';
+            modalScanFeedback.className = 'alert alert-danger mt-2 w-100 text-center fw-bold';
+            // --- Add error flash effect ---
+            scanModalElement.classList.add('flash-error');
+            // --- End Add error flash effect ---
+        }
+
+        // Clear input after check
+        modalScanInput.value = '';
+        modalScanInput.focus();
+
+        // --- Remove the class after animation finishes (2000ms) ---
+        setTimeout(() => {
+            scanModalElement.classList.remove('flash-success', 'flash-error');
+        }, 2000); // Match animation duration
+        // --- End Remove the class ---
+    }
+
+    // --- Event Listener for Enter Key in Input ---
+    modalScanInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault(); // Prevent potential form submission
+            checkScanInput();
+        }
+    });
+
+    // --- Event Listener for Submit Button Click ---
+    modalScanButton.addEventListener('click', function() {
+        checkScanInput();
+    });
+
+    // Location modal script
+    const locateModal = document.getElementById('locateApnModal');
+    if (locateModal) {
+        locateModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const dpn = button.getAttribute('data-dpn');
+            const locationStr = button.getAttribute('data-location');
+            
+            // Set DPN in modal
+            document.getElementById('modal-locate-dpn').textContent = dpn;
+            
+            // Parse location (format: "ARMOIRE X-YY")
+            let cabinet = '?';
+            let drawer = '??';
+            if (locationStr) {
+                // Remove "ARMOIRE " prefix if it exists
+                let locationParts = locationStr;
+                if (locationStr.startsWith("ARMOIRE ")) {
+                    locationParts = locationStr.replace("ARMOIRE ", "");
+                }
+                
+                // Split by hyphen
+                const parts = locationParts.split('-');
+                if (parts.length == 2) {
+                    cabinet = parts[0].trim();
+                    drawer = parts[1].trim();
+                }
+            }
+            
+            // Update labels
+            document.getElementById('cabinet-label').textContent = cabinet;
+            document.getElementById('armoire-label').textContent = 'ARMOIRE ' + cabinet;
+            document.getElementById('location-text').textContent = 'ARMOIRE ' + cabinet + '-' + drawer;
+            
+            // Clear existing drawers
+            const drawersContainer = document.getElementById('drawers-container');
+            drawersContainer.innerHTML = '';
+            
+            // Add drawers - with smaller dimensions
+            for (let i = 1; i <= 12; i++) {
+                const drawerNum = i;
+                const drawerId = ('0' + drawerNum).slice(-2); // Format as 01, 02, etc.
+                const drawerY = 45 + (drawerNum - 1) * 24; // Smaller vertical spacing
+                const isTarget = drawerId === drawer || drawerNum.toString() === drawer;
+                
+                // Create drawer group
+                const drawerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                drawerGroup.classList.add("drawer");
+                if (isTarget) {
+                    drawerGroup.classList.add("target-drawer");
+                    drawerGroup.setAttribute("transform", "translate(15, 0)");
+                }
+                
+                // Create drawer rectangle
+                const drawerRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                drawerRect.setAttribute("x", "25");
+                drawerRect.setAttribute("y", drawerY);
+                drawerRect.setAttribute("width", "150"); // Smaller width
+                drawerRect.setAttribute("height", "20"); // Smaller height
+                drawerRect.setAttribute("rx", "2");
+                drawerRect.setAttribute("fill", isTarget ? "#FF8C00" : "#777777");
+                drawerRect.setAttribute("stroke", "#333333");
+                drawerRect.setAttribute("stroke-width", "1");
+                
+                // Create handle
+                const handleRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                handleRect.setAttribute("x", "30");
+                handleRect.setAttribute("y", (drawerY + 8).toString());
+                handleRect.setAttribute("width", "20"); // Smaller width
+                handleRect.setAttribute("height", "4"); // Smaller height
+                handleRect.setAttribute("rx", "1");
+                handleRect.setAttribute("fill", "#999999");
+                handleRect.setAttribute("stroke", "#666666");
+                handleRect.setAttribute("stroke-width", "1");
+                
+                // Create label - smaller font
+                const labelText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                labelText.setAttribute("x", "160");
+                labelText.setAttribute("y", (drawerY + 10).toString());
+                labelText.setAttribute("font-family", "Arial");
+                labelText.setAttribute("font-size", "10"); // Smaller font
+                labelText.setAttribute("fill", isTarget ? "#000000" : "#ffffff");
+                labelText.setAttribute("text-anchor", "end");
+                labelText.setAttribute("dominant-baseline", "middle");
+                labelText.textContent = drawerId;
+                
+                // Add elements to drawer group
+                drawerGroup.appendChild(drawerRect);
+                drawerGroup.appendChild(handleRect);
+                drawerGroup.appendChild(labelText);
+                
+                // Add drawer to container
+                drawersContainer.appendChild(drawerGroup);
+            }
+            
+            // Apply pulse animation to target drawer after slight delay
+            setTimeout(function() {
+                const targetDrawer = document.querySelector('.target-drawer rect');
+                if (targetDrawer) {
+                    targetDrawer.style.animation = "pulse-highlight 2s infinite";
+                }
+            }, 500);
+        });
+    }
+});
+</script>
+{% endblock %}
+
