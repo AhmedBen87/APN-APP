@@ -175,3 +175,4 @@ python app.py
 ## Notes
 - Ensure all necessary image files corresponding to the entries in the CSV files are present in the correct subdirectories within `static/`. Filenames must match exactly.
 - The application runs in debug mode by default, which provides automatic reloading on code changes and a debugger. For production, use a proper WSGI server like Gunicorn.
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/AhmedBen87/APN-APP?utm_source=oss&utm_medium=github&utm_campaign=AhmedBen87%2FAPN-APP&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
